@@ -2,6 +2,8 @@ Fun with proxies. Do any combination of calls, constructs, and dot-walks
 starting with `Echo`, and an approximation of what you typed is logged to the
 console (now with syntax highlighting)
 
+![Demo of Echo in action](https://raw.githubusercontent.com/mrjacobbloom/echo/master/demo.gif)
+
 ## Usage
 
 ```javascript
