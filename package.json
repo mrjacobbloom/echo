@@ -1,0 +1,27 @@
+{
+  "name": "echo",
+  "version": "0.0.1",
+  "description": "Fun with proxies. Repeats after you.",
+  "main": "dist/echo.js",
+  "scripts": {
+    "build": "npx rollup -c"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mrjacobbloom/echo.git"
+  },
+  "author": "Jacob Bloom",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/mrjacobbloom/echo/issues"
+  },
+  "homepage": "https://github.com/mrjacobbloom/echo#readme",
+  "devDependencies": {
+    "rollup": "^1.17.0",
+    "rollup-plugin-banner": "^0.2.0",
+    "rollup-plugin-terser": "^5.1.1",
+    "rollup-plugin-typescript": "^1.0.1",
+    "tslib": "^1.10.0",
+    "typescript": "^3.5.3"
+  }
+}
