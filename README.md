@@ -8,7 +8,7 @@ console (now with syntax highlighting)
 
 ```javascript
 // in ES module
-import _ from './echo.js'; // attaches itself to the global, so you don't actually want the import to be named Echo
+import {} from './echo.js'; // attaches itself to the global, so you don't actually want the import to be named Echo
 // or in Node <12.??
 require('./echo.js');
 
