@@ -2,11 +2,3 @@ language: node_js
 script: npm run-script travis
 node_js:
 - node
-deploy:
-  provider: releases
-  api_key:
-    secure: Q/kaJZb6TzdIFs6BpDa5jo+9sNXQfCa9/8syTTMcHWiMOlymGBbImLJCfq3R87MYUnsCNIYDiZLKgz3oXYatPIWkUlQIccD521+jmYeeJvXfXIxMgl5Hkgz2+ajvxMZCHcXhWhZuBIbu/50VMfmz4IhJGE2swePE5r1fNqPwNCaibLL7kGgyCH24OAMoDtmaFxUnX9D0gCKsvTdEPXfqkFu0GojBZKhCzWs/YxS2COfOoho1LVeHzgg+WoryqGJDC62yXl/KN3cVaakGfnuXj93eF+G47CH98x61w15lhJIM1oRowi9Dkcyifa+jO9mxGeP5E41zWWYOxKoGUK2KPkGJXuxtarwWN/MuR4cmeryDEwxBTR5f0bOYDt06cQAFSCxD4AxBGyUgXw1TqYVWy90Y+aslYx7f6amAJ4aQ8rxHZu817P81VUFB3qBzDPnQmkWm5ZRcDJtod9yVH/nYVJfy0OrPvfd1PaFJqf9u2YA2i1XXeaeyKuzF+GU3p5/pt+AXVc6pFWk0bhcf1x/r/2/eS/c6jrjUWI3JUe1bR+gGQIS7Sv48KA6nwT0JqOdptIpHuu0u8X029pkmDlACIRGIISUvnJVpYwAUcyNsME7ujLmztKMjWrHwNUhb/1e1nHYIAY0GsgEhp7x3kbQJ53G51EYoTQD+wfVUnaSSVvE=
-  file_glob: true
-  file: dist/*
-  on:
-    repo: mrjacobbloom/echo
