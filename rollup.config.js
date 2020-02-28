@@ -24,7 +24,7 @@ export default [
     },
     plugins: [
       typescript(),
-      terser(),
+      terser({ output: { comments: false } }),
       banner(preamble)
     ]
   },
