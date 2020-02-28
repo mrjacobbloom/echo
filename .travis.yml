@@ -1,4 +1,4 @@
 language: node_js
-script: npm run-script build && npm test
+script: npm run-script travis
 node_js:
   - node

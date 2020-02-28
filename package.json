@@ -5,7 +5,8 @@
   "main": "dist/echo.js",
   "scripts": {
     "build": "npx rollup -c",
-    "test": "npx mocha"
+    "test": "npx mocha",
+    "travis": "npm run build && npm test"
   },
   "repository": {
     "type": "git",
