@@ -329,7 +329,7 @@
           var styles = [];
           for (var _i = 0, tokens_1 = tokens; _i < tokens_1.length; _i++) {
               var token = tokens_1[_i];
-              formatString += '%c' + token.value;
+              formatString += '%c' + token.value.replace(/%/g, '%%');
               styles.push(theme[token.type] || theme.default);
           }
           ret.formatted = [formatString].concat(styles);
