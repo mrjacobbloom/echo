@@ -31,13 +31,15 @@ Once you've done that, you can interact with it via the console/REPL, or even in
 /* < */ Echo.gfdgfd[4][' fff '](undefined, true, -Infinity)
 ```
 
+Note that Echo runs perfectly in Node, but requires Node 10.12 or later.
+
 ## Options
 
 Echo has a few options that can be configured in the `Echo.options` object:
 
 | Property | Type/Options | Default | Explanation |
 | -------- | ------- | ------- | ----------- |
-| `alwaysBracketNotation` | Boolean | `false` | When true, always use bracket notation for gets. Otherwise, use heuristics to decide when to use dot notation. |
+| `bracketNotationOptional` | Boolean | `true` | When true, use heuristics to decide when to use dot notation. Otherwise, always use square-braket notation. |
 | `parensOptional` | Boolean | `true` | When true, use heuristics to decide whether to wrap subexpressions in parentheses. When false, always wrap them. |
 | `constructorParensOptional` | Boolean | `true` | When true, drop parentheses for constructors with no arguments. |
 | `stringDelimiter` | String | `"'"` | What character is used to delimit (bookend) strings, and is escaped from strings. |

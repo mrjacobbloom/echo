@@ -20,34 +20,15 @@ export default function prettyPrint(tokens: Token[]): PrettyPrintOutput {
     let formatString = '';
     const styles = [];
     for(const token of tokens) {
-      if(typeof token === 'string') {
-        formatString += '%c' + token;
-        switch(token) {
-          case 'new': { styles.push(theme.keyword); break; }
-          case '.':
-          case ',': { styles.push(theme.operator); break; }
-          default: { styles.push(theme.default); break; }
-        }
-      } else {
-        formatString += '%c' + token.value;
+      formatString += '%c' + token.value;
         styles.push(theme[token.type] || theme.default);
-      }
     }
     ret.formatted = [formatString, ...styles];
   } else {
     const theme = THEMES[options.theme].ansi;
     let out = '';
     for(const token of tokens) {
-      if(typeof token === 'string') {
-        switch(token) {
-          case 'new': { out += theme.keyword + token; break; }
-          case '.':
-          case ',': { out += theme.operator + token; break; }
-          default: { out += theme.default + token; break; }
-        }
-      } else {
-        out += (theme[token.type] || theme.default) + token.value;
-      }
+      out += (theme[token.type] || theme.default) + token.value;
     }
     out += '\x1b[0m'; // force reset
     ret.formatted = [out]

@@ -2,7 +2,7 @@
  * Options object. See README.md
  */
 type Options = {
-  alwaysBracketNotation: boolean;
+  bracketNotationOptional: boolean;
   constructorParensOptional: boolean;
   parensOptional: boolean;
   colorMode: 'browser' | 'ansi' | 'off';
@@ -33,14 +33,36 @@ type TrappedOperation = {
   args?: any[];
 };
 
+type TokenType =
+  | 'keyword'
+  | 'number'
+  | 'string'
+  | 'boolean'
+  | 'object'
+  | 'null'
+  | 'undefined'
+  | 'operator'
+  | 'variable'
+  | 'property'
+  | 'default';
+
 /**
- * String which may optionally contain type information, which is used for
- * syntax highlighting in prettyPrint
+ * Token, which is used for syntax highlighting in prettyPrint
  */
-type Token = string|{value: string, type: string};
+type Token = {
+  value: string;
+  type: TokenType;
+};
 
 type PrettyPrintOutput = {
   tokens: Token[];
   plaintext: string;
   formatted: string[];
 };
+
+interface ThemeMap {
+  [theme: string]: {
+    browser: { [tokenType in TokenType]: string };
+    ansi: { [tokenType in TokenType]: string };
+  };
+}

@@ -5,15 +5,47 @@
 (function () {
   'use strict';
 
+  var colorMode = 'browser';
+  if (typeof process !== undefined) {
+      try {
+          if (process.stdout.isTTY && process.stdout.getColorDepth() >= 4) {
+              colorMode = 'ansi';
+          }
+          else {
+              colorMode = 'off';
+          }
+      }
+      catch (_a) { }
+  }
   var options = {
-      alwaysBracketNotation: false,
+      colorMode: colorMode,
+      bracketNotationOptional: true,
       constructorParensOptional: true,
       parensOptional: true,
-      colorMode: typeof process === 'undefined' ? 'browser' : 'ansi',
       stringDelimiter: "'",
       theme: (typeof navigator !== 'undefined' && navigator.userAgent.includes('Firefox')) ? 'firefox' : 'chrome',
       output: 'log',
   };
+
+  /*! *****************************************************************************
+  Copyright (c) Microsoft Corporation. All rights reserved.
+  Licensed under the Apache License, Version 2.0 (the "License"); you may not use
+  this file except in compliance with the License. You may obtain a copy of the
+  License at http://www.apache.org/licenses/LICENSE-2.0
+
+  THIS CODE IS PROVIDED ON AN *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+  KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION ANY IMPLIED
+  WARRANTIES OR CONDITIONS OF TITLE, FITNESS FOR A PARTICULAR PURPOSE,
+  MERCHANTABLITY OR NON-INFRINGEMENT.
+
+  See the Apache Version 2.0 License for specific language governing permissions
+  and limitations under the License.
+  ***************************************************************************** */
+
+  function __makeTemplateObject(cooked, raw) {
+      if (Object.defineProperty) { Object.defineProperty(cooked, "raw", { value: raw }); } else { cooked.raw = raw; }
+      return cooked;
+  }
 
   var specialIdentTypes = {
       'undefined': 'undefined',
@@ -35,9 +67,29 @@
       return d + string.replace(regexp, '\\' + d) + d;
   }
   /**
-   * Tokenize an arguments list
-   * @param args
-   * @param options
+   * Tags to generate tokens from template strings, and whitespace getter.
+   */
+  var T = {
+      operator: function (_a) {
+          var value = _a[0];
+          return { value: value, type: 'operator' };
+      },
+      keyword: function (_a) {
+          var value = _a[0];
+          return { value: value, type: 'keyword' };
+      },
+      default: function (_a) {
+          var value = _a[0];
+          return { value: value, type: 'default' };
+      },
+      space: function () {
+          return { value: ' ', type: 'default' };
+      }
+  };
+  /**
+   * Tokenize an arguments list (i.e. Echo was applied or constructed)
+   * @param args arguments list
+   * @returns {Token[]}
    */
   function handleArgs(args) {
       var out = [];
@@ -46,41 +98,53 @@
               out.push.apply(out, renderTokens(arg._self.stack));
           }
           else {
-              if (typeof arg === 'string') {
-                  out.push({ value: escapeString(arg), type: 'string' });
-              }
-              else if (typeof arg === 'function') {
-                  if (arg.name) {
-                      out.push({ value: arg.name, type: 'variable' });
+              switch (typeof arg) {
+                  case 'string': {
+                      out.push({ value: escapeString(arg), type: 'string' });
+                      break;
                   }
-                  else {
-                      out.push({ value: String(arg), type: 'function' });
-                  }
-              }
-              else if (typeof arg === 'object') {
-                  // in my experience this is almost always wrong, but closer than [object Object]
-                  if (arg) {
-                      var name = arg.__proto__.name || arg.constructor.name;
-                      if (name && name != 'Object') {
-                          out.push({ value: name + " {}", type: 'object' });
+                  case 'function': {
+                      if (arg.name) {
+                          out.push({ value: arg.name, type: 'variable' });
                       }
                       else {
-                          out.push({ value: '{}', type: 'object' });
+                          out.push({ value: String(arg), type: 'default' });
                       }
+                      break;
                   }
-                  else {
-                      out.push({ value: 'null', type: 'null' });
+                  case 'object': {
+                      // in my experience this is almost always wrong, but closer than [object Object]
+                      if (arg) {
+                          var name = arg.__proto__.name || arg.constructor.name;
+                          if (name && name != 'Object') {
+                              out.push({ value: name + " {}", type: 'object' });
+                          }
+                          else {
+                              out.push({ value: '{}', type: 'object' });
+                          }
+                      }
+                      else {
+                          out.push({ value: 'null', type: 'null' });
+                      }
+                      break;
                   }
-              }
-              else if (specialIdentTypes[arg]) {
-                  out.push({ value: String(arg), type: specialIdentTypes[arg] });
-              }
-              else {
-                  out.push({ value: String(arg), type: typeof arg });
+                  case 'bigint': {
+                      out.push({ value: String(arg), type: 'number' });
+                      break;
+                  }
+                  default: {
+                      if (specialIdentTypes[arg]) {
+                          out.push({ value: String(arg), type: specialIdentTypes[arg] });
+                      }
+                      else {
+                          out.push({ value: String(arg), type: typeof arg });
+                      }
+                      break;
+                  }
               }
           }
           if (idx < args.length - 1)
-              out.push(',', ' ');
+              out.push(T.operator(templateObject_1 || (templateObject_1 = __makeTemplateObject([","], [","]))), T.space());
       });
       return out;
   }
@@ -90,8 +154,8 @@
   /**
    * Render a given Echo's stack into an array of Tokens (strings which may also
    * carry type information).
-   * @param stack
-   * @param options
+   * @param {TrappedOperation[]} stack Echo's operation stack.
+   * @returns {Token[]} Token list.
    */
   function renderTokens(stack) {
       var out = [];
@@ -100,29 +164,29 @@
           var item = stack[i];
           switch (item.type) {
               case 'get': {
-                  // determining types for property accesses is harder than argument lists since eeverything is stringified
+                  // determining types for property accesses is harder than argument lists since everything is stringified
                   if (!out.length) {
                       out = [{ value: item.identifier, type: 'variable' }];
                   }
                   else if (specialIdentTypes[item.identifier]) {
                       // it's a special identifier (like a keyword) with a hard-coded type
-                      out = out.concat(['[', { value: item.identifier, type: specialIdentTypes[item.identifier] }, ']']);
+                      out = out.concat([T.operator(templateObject_2 || (templateObject_2 = __makeTemplateObject(["["], ["["]))), { value: item.identifier, type: specialIdentTypes[item.identifier] }, T.operator(templateObject_3 || (templateObject_3 = __makeTemplateObject(["]"], ["]"])))]);
                   }
                   else if (!Number.isNaN(Number(item.identifier))) {
                       // it's a number
-                      out = out.concat(['[', { value: item.identifier, type: 'number' }, ']']);
+                      out = out.concat([T.operator(templateObject_4 || (templateObject_4 = __makeTemplateObject(["["], ["["]))), { value: item.identifier, type: 'number' }, T.operator(templateObject_5 || (templateObject_5 = __makeTemplateObject(["]"], ["]"])))]);
                   }
-                  else if (options.alwaysBracketNotation || !identRegEx.test(item.identifier)) {
-                      // it's a string and is either not a valid identifier or alwaysBracketNotation is on
-                      out = out.concat(['[', { value: escapeString(item.identifier), type: 'string' }, ']']);
+                  else if (!options.bracketNotationOptional || !identRegEx.test(item.identifier)) {
+                      // it's a string and is either not a valid identifier or bracketNotationOptional is off
+                      out = out.concat([T.operator(templateObject_6 || (templateObject_6 = __makeTemplateObject(["["], ["["]))), { value: escapeString(item.identifier), type: 'string' }, T.operator(templateObject_7 || (templateObject_7 = __makeTemplateObject(["]"], ["]"])))]);
                   }
                   else if (options.parensOptional && prevType === 'get') {
                       // it's a valid identifier and heuristics say we don't need parentheses for clarity
-                      out = out.concat(['.', { value: item.identifier, type: 'property' }]);
+                      out = out.concat([T.operator(templateObject_8 || (templateObject_8 = __makeTemplateObject(["."], ["."]))), { value: item.identifier, type: 'property' }]);
                   }
                   else {
                       // it's a valid identifier and we're using parentheses for clarity (or parensOptional is off)
-                      out = ['('].concat(out, [')', '.', { value: item.identifier, type: 'property' }]);
+                      out = [T.operator(templateObject_9 || (templateObject_9 = __makeTemplateObject(["("], ["("])))].concat(out, [T.operator(templateObject_10 || (templateObject_10 = __makeTemplateObject([")"], [")"]))), T.operator(templateObject_11 || (templateObject_11 = __makeTemplateObject(["."], ["."]))), { value: item.identifier, type: 'property' }]);
                   }
                   break;
               }
@@ -130,25 +194,26 @@
                   // handle arguments list and whether parens are necessary at all
                   var args = [];
                   if (!options.constructorParensOptional || item.args.length) {
-                      args = ['('].concat(handleArgs(item.args), [')']);
+                      args = [T.operator(templateObject_12 || (templateObject_12 = __makeTemplateObject(["("], ["("])))].concat(handleArgs(item.args), [T.operator(templateObject_13 || (templateObject_13 = __makeTemplateObject([")"], [")"])))]);
                   }
                   // decide whether to wrap the constructor in parentheses for clarity
-                  if (options.parensOptional && prevType === 'get' && !out.includes('(')) {
-                      out = ['new', ' '].concat(out, args);
+                  if (options.parensOptional && prevType === 'get' && !out.filter(function (t) { return t.value === ')'; }).length) {
+                      out = [T.keyword(templateObject_14 || (templateObject_14 = __makeTemplateObject(["new"], ["new"]))), T.space()].concat(out, args);
                   }
                   else {
-                      out = ['new', ' ', '('].concat(out, [')'], args);
+                      out = [T.keyword(templateObject_15 || (templateObject_15 = __makeTemplateObject(["new"], ["new"]))), T.space(), T.operator(templateObject_16 || (templateObject_16 = __makeTemplateObject(["("], ["("])))].concat(out, [T.operator(templateObject_17 || (templateObject_17 = __makeTemplateObject([")"], [")"])))], args);
                   }
                   break;
               }
               case 'apply': {
-                  out = out.concat(['('], handleArgs(item.args), [')']);
+                  out = out.concat([T.operator(templateObject_18 || (templateObject_18 = __makeTemplateObject(["("], ["("])))], handleArgs(item.args), [T.operator(templateObject_19 || (templateObject_19 = __makeTemplateObject([")"], [")"])))]);
                   break;
               }
           }
       }
       return out;
   }
+  var templateObject_1, templateObject_2, templateObject_3, templateObject_4, templateObject_5, templateObject_6, templateObject_7, templateObject_8, templateObject_9, templateObject_10, templateObject_11, templateObject_12, templateObject_13, templateObject_14, templateObject_15, templateObject_16, templateObject_17, templateObject_18, templateObject_19;
 
   var ANSI = {
       reset: "\x1b[0m",
@@ -243,28 +308,8 @@
           var styles = [];
           for (var _i = 0, tokens_1 = tokens; _i < tokens_1.length; _i++) {
               var token = tokens_1[_i];
-              if (typeof token === 'string') {
-                  formatString += '%c' + token;
-                  switch (token) {
-                      case 'new': {
-                          styles.push(theme.keyword);
-                          break;
-                      }
-                      case '.':
-                      case ',': {
-                          styles.push(theme.operator);
-                          break;
-                      }
-                      default: {
-                          styles.push(theme.default);
-                          break;
-                      }
-                  }
-              }
-              else {
-                  formatString += '%c' + token.value;
-                  styles.push(theme[token.type] || theme.default);
-              }
+              formatString += '%c' + token.value;
+              styles.push(theme[token.type] || theme.default);
           }
           ret.formatted = [formatString].concat(styles);
       }
@@ -273,26 +318,7 @@
           var out = '';
           for (var _a = 0, tokens_2 = tokens; _a < tokens_2.length; _a++) {
               var token = tokens_2[_a];
-              if (typeof token === 'string') {
-                  switch (token) {
-                      case 'new': {
-                          out += theme.keyword + token;
-                          break;
-                      }
-                      case '.':
-                      case ',': {
-                          out += theme.operator + token;
-                          break;
-                      }
-                      default: {
-                          out += theme.default + token;
-                          break;
-                      }
-                  }
-              }
-              else {
-                  out += (theme[token.type] || theme.default) + token.value;
-              }
+              out += (theme[token.type] || theme.default) + token.value;
           }
           out += '\x1b[0m'; // force reset
           ret.formatted = [out];
@@ -306,14 +332,7 @@
       // to avoid breaking the console, or JavaScript altogether
       'toString', 'valueOf', 'constructor', 'prototype', '__proto__'
   ];
-  var isNode = typeof process !== undefined;
-  var symbolInspect;
-  if (isNode) {
-      try {
-          symbolInspect = require('util').inspect.custom;
-      }
-      catch (_a) { }
-  }
+  var symbolInspect = typeof process !== undefined ? Symbol.for('nodejs.util.inspect.custom') : null;
   var handler = {
       get: function (target, identifier) {
           if (typeof identifier === 'symbol'
@@ -359,7 +378,7 @@
               }
           }
       });
-      if (isNode) {
+      if (symbolInspect) {
           var inspectOriginal_1 = Echo[symbolInspect];
           Object.defineProperty(Echo, symbolInspect, {
               get: function () {
@@ -376,10 +395,10 @@
           get: function () {
               if (options.output === 'promise') {
                   var p = Promise.resolve(Echo.render());
-                  return p.then.bind(p);
+                  return Promise.prototype.then.bind(p);
               }
               else {
-                  return undefined;
+                  return handler.get(Echo, 'then', null);
               }
           }
       });

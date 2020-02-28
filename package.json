@@ -23,5 +23,8 @@
     "rollup-plugin-typescript": "^1.0.1",
     "tslib": "^1.10.0",
     "typescript": "^3.5.3"
-  }
+  },
+  "engines": {    
+    "node": ">=10.12.0" 
+}
 }

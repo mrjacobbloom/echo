@@ -70,4 +70,4 @@ export default {
      'default': ANSI.reset,
     },
   },
-};
+} as ThemeMap;

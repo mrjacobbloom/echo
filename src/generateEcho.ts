@@ -8,15 +8,9 @@ const ignoreIdents: any[] = [
   'toString', 'valueOf', 'constructor', 'prototype', '__proto__'
 ];
 
-const isNode = typeof process !== undefined;
-let symbolInspect;
-if(isNode) {
-  try {
-    symbolInspect = require('util').inspect.custom;
-  } catch {}
-}
+const symbolInspect = typeof process !== undefined ? Symbol.for('nodejs.util.inspect.custom') : null;
 
-const handler = {
+const handler: ProxyHandler<any> = {
   get(target, identifier) {
     if(typeof identifier === 'symbol'
     || ignoreIdents.includes(identifier)
@@ -38,9 +32,9 @@ const handler = {
 };
 
 export default function generateEcho(): Echo {
-  const Echo = function Echo() {};
+  const Echo: Partial<Echo> = function Echo() {};
   Echo.stack = [];
-  Echo._self = Echo;
+  Echo._self = Echo as Echo;
   Echo.render = null;
 
   Echo.toString = () => {
@@ -60,7 +54,7 @@ export default function generateEcho(): Echo {
       }
     }
   });
-  if(isNode) {
+  if(symbolInspect) {
     const inspectOriginal = Echo[symbolInspect];
     Object.defineProperty(Echo, symbolInspect, {
       get() {
@@ -76,9 +70,9 @@ export default function generateEcho(): Echo {
     get() {
       if(options.output === 'promise') {
         const p = Promise.resolve(Echo.render());
-        return p.then.bind(p);
+        return Promise.prototype.then.bind(p);
       } else {
-        return undefined;
+        return handler.get(Echo, 'then', null);
       }
     }
   });
