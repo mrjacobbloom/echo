@@ -4,7 +4,8 @@
   "description": "Fun with proxies. Repeats after you.",
   "main": "dist/echo.js",
   "scripts": {
-    "build": "npx rollup -c"
+    "build": "npx rollup -c",
+    "test": "npx mocha"
   },
   "repository": {
     "type": "git",
@@ -17,6 +18,8 @@
   },
   "homepage": "https://github.com/mrjacobbloom/echo#readme",
   "devDependencies": {
+    "chai": "^4.2.0",
+    "mocha": "^7.1.0",
     "rollup": "^1.17.0",
     "rollup-plugin-banner": "^0.2.0",
     "rollup-plugin-terser": "^5.2.0",

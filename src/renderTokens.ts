@@ -78,7 +78,7 @@ function handleArgs(args: any[]): Token[] {
           break;
         }
         case 'bigint': {
-          out.push({value: String(arg), type: 'number'});
+          out.push({value: String(arg) + 'n', type: 'number'});
           break;
         }
         default: {
@@ -108,6 +108,7 @@ const identRegEx = /^[_$a-zA-Z][_$a-zA-Z0-9]*$/;
  */
 export default function renderTokens(stack: TrappedOperation[]): Token[] {
   let out: Token[] = [];
+  let constructorAmbiguityRisk = false;
   for(let i = 0; i < stack.length; i++) {
     const prevType = i > 0 ? stack[i - 1].type : '';
     const item = stack[i];
@@ -116,21 +117,34 @@ export default function renderTokens(stack: TrappedOperation[]): Token[] {
         // determining types for property accesses is harder than argument lists since everything is stringified
         if(!out.length) {
           out = [{value: item.identifier, type: 'variable'}];
-        } else if(specialIdentTypes[item.identifier]) {
-          // it's a special identifier (like a keyword) with a hard-coded type
-          out = [...out, T.operator`[`, {value: item.identifier, type: specialIdentTypes[item.identifier]}, T.operator`]`];
-        } else if(!Number.isNaN(Number(item.identifier))) {
-          // it's a number
-          out = [...out, T.operator`[`, {value: item.identifier, type: 'number'}, T.operator`]`];
-        } else if(!options.bracketNotationOptional || !identRegEx.test(item.identifier)) {
-          // it's a string and is either not a valid identifier or bracketNotationOptional is off
-          out = [...out, T.operator`[`, {value: escapeString(item.identifier), type: 'string'}, T.operator`]`];
-        } else if(options.parensOptional && prevType === 'get') {
-          // it's a valid identifier and heuristics say we don't need parentheses for clarity
-          out = [...out, T.operator`.`, {value: item.identifier, type: 'property'}];
         } else {
-          // it's a valid identifier and we're using parentheses for clarity (or parensOptional is off)
-          out = [T.operator`(`, ...out, T.operator`)`, T.operator`.`, {value: item.identifier, type: 'property'}];
+          let identToken: Token;
+          if(specialIdentTypes[item.identifier]) {
+            // it's a special identifier (like a keyword) with a hard-coded type
+            identToken = {value: item.identifier, type: specialIdentTypes[item.identifier]};
+          } else if(!Number.isNaN(Number(item.identifier))) {
+            identToken = {value: item.identifier, type: 'number'};
+          } else if(!options.bracketNotationOptional || !identRegEx.test(item.identifier)) {
+            // it's a string and is either not a valid identifier or bracketNotationOptional is off
+            identToken = {value: escapeString(item.identifier), type: 'string'};
+          } else {
+            identToken = {value: item.identifier, type: 'property'};
+          }
+
+          let needsParens = prevType !== 'get';
+          // do not wrap in parens if already wrapped in parens
+          if (out[0].value === '(' && out[out.length - 1].value === ')') needsParens = false;
+
+          // If !parensOptional or heuristics say we need parens, wrap prior stuff in parens
+          if (!options.parensOptional || needsParens) {
+            out = [T.operator`(`, ...out, T.operator`)`];
+          }
+
+          if(identToken.type === 'property') {
+            out = [...out, T.operator`.`, identToken];
+          } else {
+            out = [...out, T.operator`[`, identToken, T.operator`]`];
+          }
         }
         break;
       }
@@ -141,15 +155,22 @@ export default function renderTokens(stack: TrappedOperation[]): Token[] {
           args = [T.operator`(`, ...handleArgs(item.args), T.operator`)`]
         }
         // decide whether to wrap the constructor in parentheses for clarity
-        if(options.parensOptional && prevType === 'get' && !out.filter(t => t.value === ')').length) {
+        if(options.parensOptional && !constructorAmbiguityRisk) {
           out = [T.keyword`new`, T.space(), ...out, ...args];
+          if (args.length) constructorAmbiguityRisk = true;
         } else {
           out = [T.keyword`new`, T.space(), T.operator`(`, ...out, T.operator`)`, ...args];
+          constructorAmbiguityRisk = args.length > 1;
         }
         break;
       }
       case 'apply': {
-        out = [...out, T.operator`(`, ...handleArgs(item.args), T.operator`)`];
+        if (prevType === 'construct') {
+          out = [T.operator`(`, ...out, T.operator`(`, ...handleArgs(item.args), T.operator`)`, T.operator`)`];
+        } else {
+          out = [...out, T.operator`(`, ...handleArgs(item.args), T.operator`)`];
+        }
+        constructorAmbiguityRisk = true;
         break;
       }
     }

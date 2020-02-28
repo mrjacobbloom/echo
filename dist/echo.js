@@ -129,7 +129,7 @@
                       break;
                   }
                   case 'bigint': {
-                      out.push({ value: String(arg), type: 'number' });
+                      out.push({ value: String(arg) + 'n', type: 'number' });
                       break;
                   }
                   default: {
@@ -159,6 +159,7 @@
    */
   function renderTokens(stack) {
       var out = [];
+      var constructorAmbiguityRisk = false;
       for (var i = 0; i < stack.length; i++) {
           var prevType = i > 0 ? stack[i - 1].type : '';
           var item = stack[i];
@@ -168,25 +169,36 @@
                   if (!out.length) {
                       out = [{ value: item.identifier, type: 'variable' }];
                   }
-                  else if (specialIdentTypes[item.identifier]) {
-                      // it's a special identifier (like a keyword) with a hard-coded type
-                      out = out.concat([T.operator(templateObject_2 || (templateObject_2 = __makeTemplateObject(["["], ["["]))), { value: item.identifier, type: specialIdentTypes[item.identifier] }, T.operator(templateObject_3 || (templateObject_3 = __makeTemplateObject(["]"], ["]"])))]);
-                  }
-                  else if (!Number.isNaN(Number(item.identifier))) {
-                      // it's a number
-                      out = out.concat([T.operator(templateObject_4 || (templateObject_4 = __makeTemplateObject(["["], ["["]))), { value: item.identifier, type: 'number' }, T.operator(templateObject_5 || (templateObject_5 = __makeTemplateObject(["]"], ["]"])))]);
-                  }
-                  else if (!options.bracketNotationOptional || !identRegEx.test(item.identifier)) {
-                      // it's a string and is either not a valid identifier or bracketNotationOptional is off
-                      out = out.concat([T.operator(templateObject_6 || (templateObject_6 = __makeTemplateObject(["["], ["["]))), { value: escapeString(item.identifier), type: 'string' }, T.operator(templateObject_7 || (templateObject_7 = __makeTemplateObject(["]"], ["]"])))]);
-                  }
-                  else if (options.parensOptional && prevType === 'get') {
-                      // it's a valid identifier and heuristics say we don't need parentheses for clarity
-                      out = out.concat([T.operator(templateObject_8 || (templateObject_8 = __makeTemplateObject(["."], ["."]))), { value: item.identifier, type: 'property' }]);
-                  }
                   else {
-                      // it's a valid identifier and we're using parentheses for clarity (or parensOptional is off)
-                      out = [T.operator(templateObject_9 || (templateObject_9 = __makeTemplateObject(["("], ["("])))].concat(out, [T.operator(templateObject_10 || (templateObject_10 = __makeTemplateObject([")"], [")"]))), T.operator(templateObject_11 || (templateObject_11 = __makeTemplateObject(["."], ["."]))), { value: item.identifier, type: 'property' }]);
+                      var identToken = void 0;
+                      if (specialIdentTypes[item.identifier]) {
+                          // it's a special identifier (like a keyword) with a hard-coded type
+                          identToken = { value: item.identifier, type: specialIdentTypes[item.identifier] };
+                      }
+                      else if (!Number.isNaN(Number(item.identifier))) {
+                          identToken = { value: item.identifier, type: 'number' };
+                      }
+                      else if (!options.bracketNotationOptional || !identRegEx.test(item.identifier)) {
+                          // it's a string and is either not a valid identifier or bracketNotationOptional is off
+                          identToken = { value: escapeString(item.identifier), type: 'string' };
+                      }
+                      else {
+                          identToken = { value: item.identifier, type: 'property' };
+                      }
+                      var needsParens = prevType !== 'get';
+                      // do not wrap in parens if already wrapped in parens
+                      if (out[0].value === '(' && out[out.length - 1].value === ')')
+                          needsParens = false;
+                      // If !parensOptional or heuristics say we need parens, wrap prior stuff in parens
+                      if (!options.parensOptional || needsParens) {
+                          out = [T.operator(templateObject_2 || (templateObject_2 = __makeTemplateObject(["("], ["("])))].concat(out, [T.operator(templateObject_3 || (templateObject_3 = __makeTemplateObject([")"], [")"])))]);
+                      }
+                      if (identToken.type === 'property') {
+                          out = out.concat([T.operator(templateObject_4 || (templateObject_4 = __makeTemplateObject(["."], ["."]))), identToken]);
+                      }
+                      else {
+                          out = out.concat([T.operator(templateObject_5 || (templateObject_5 = __makeTemplateObject(["["], ["["]))), identToken, T.operator(templateObject_6 || (templateObject_6 = __makeTemplateObject(["]"], ["]"])))]);
+                      }
                   }
                   break;
               }
@@ -194,26 +206,35 @@
                   // handle arguments list and whether parens are necessary at all
                   var args = [];
                   if (!options.constructorParensOptional || item.args.length) {
-                      args = [T.operator(templateObject_12 || (templateObject_12 = __makeTemplateObject(["("], ["("])))].concat(handleArgs(item.args), [T.operator(templateObject_13 || (templateObject_13 = __makeTemplateObject([")"], [")"])))]);
+                      args = [T.operator(templateObject_7 || (templateObject_7 = __makeTemplateObject(["("], ["("])))].concat(handleArgs(item.args), [T.operator(templateObject_8 || (templateObject_8 = __makeTemplateObject([")"], [")"])))]);
                   }
                   // decide whether to wrap the constructor in parentheses for clarity
-                  if (options.parensOptional && prevType === 'get' && !out.filter(function (t) { return t.value === ')'; }).length) {
-                      out = [T.keyword(templateObject_14 || (templateObject_14 = __makeTemplateObject(["new"], ["new"]))), T.space()].concat(out, args);
+                  if (options.parensOptional && !constructorAmbiguityRisk) {
+                      out = [T.keyword(templateObject_9 || (templateObject_9 = __makeTemplateObject(["new"], ["new"]))), T.space()].concat(out, args);
+                      if (args.length)
+                          constructorAmbiguityRisk = true;
                   }
                   else {
-                      out = [T.keyword(templateObject_15 || (templateObject_15 = __makeTemplateObject(["new"], ["new"]))), T.space(), T.operator(templateObject_16 || (templateObject_16 = __makeTemplateObject(["("], ["("])))].concat(out, [T.operator(templateObject_17 || (templateObject_17 = __makeTemplateObject([")"], [")"])))], args);
+                      out = [T.keyword(templateObject_10 || (templateObject_10 = __makeTemplateObject(["new"], ["new"]))), T.space(), T.operator(templateObject_11 || (templateObject_11 = __makeTemplateObject(["("], ["("])))].concat(out, [T.operator(templateObject_12 || (templateObject_12 = __makeTemplateObject([")"], [")"])))], args);
+                      constructorAmbiguityRisk = args.length > 1;
                   }
                   break;
               }
               case 'apply': {
-                  out = out.concat([T.operator(templateObject_18 || (templateObject_18 = __makeTemplateObject(["("], ["("])))], handleArgs(item.args), [T.operator(templateObject_19 || (templateObject_19 = __makeTemplateObject([")"], [")"])))]);
+                  if (prevType === 'construct') {
+                      out = [T.operator(templateObject_13 || (templateObject_13 = __makeTemplateObject(["("], ["("])))].concat(out, [T.operator(templateObject_14 || (templateObject_14 = __makeTemplateObject(["("], ["("])))], handleArgs(item.args), [T.operator(templateObject_15 || (templateObject_15 = __makeTemplateObject([")"], [")"]))), T.operator(templateObject_16 || (templateObject_16 = __makeTemplateObject([")"], [")"])))]);
+                  }
+                  else {
+                      out = out.concat([T.operator(templateObject_17 || (templateObject_17 = __makeTemplateObject(["("], ["("])))], handleArgs(item.args), [T.operator(templateObject_18 || (templateObject_18 = __makeTemplateObject([")"], [")"])))]);
+                  }
+                  constructorAmbiguityRisk = true;
                   break;
               }
           }
       }
       return out;
   }
-  var templateObject_1, templateObject_2, templateObject_3, templateObject_4, templateObject_5, templateObject_6, templateObject_7, templateObject_8, templateObject_9, templateObject_10, templateObject_11, templateObject_12, templateObject_13, templateObject_14, templateObject_15, templateObject_16, templateObject_17, templateObject_18, templateObject_19;
+  var templateObject_1, templateObject_2, templateObject_3, templateObject_4, templateObject_5, templateObject_6, templateObject_7, templateObject_8, templateObject_9, templateObject_10, templateObject_11, templateObject_12, templateObject_13, templateObject_14, templateObject_15, templateObject_16, templateObject_17, templateObject_18;
 
   var ANSI = {
       reset: "\x1b[0m",
