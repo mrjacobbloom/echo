@@ -3,6 +3,7 @@
   "version": "0.0.1",
   "description": "Fun with proxies. Repeats after you.",
   "main": "dist/echo.js",
+  "types": "dist/declarations.d.ts",
   "scripts": {
     "build": "npx rollup -c",
     "test": "npx mocha",
