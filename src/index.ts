@@ -9,11 +9,6 @@ let tokens: Token[] = [];
 
 attachToGlobal('Echo', () => {
   const Echo = generateEcho();
-  Echo.stack.push({type: 'get', identifier: 'Echo'});
-  Echo.render = () => {
-    const t = renderTokens(Echo.stack);
-    return prettyPrint(t);
-  }
   if(options.output === 'log') {
     echoCount++;
     setTimeout(() => {

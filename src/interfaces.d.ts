@@ -20,7 +20,7 @@ interface Echo {
   _self: Echo;
   stack: TrappedOperation[];
   proxy: any;
-  render?: () => PrettyPrintOutput;
+  render: () => PrettyPrintOutput;
 }
 
 /**
@@ -28,9 +28,11 @@ interface Echo {
  * Token.
  */
 type TrappedOperation = {
-  type: 'get' | 'construct' | 'apply';
-  identifier?: string;
-  args?: any[];
+  type: 'construct' | 'apply';
+  args: any[];
+} | {
+  type: 'get';
+  identifier: string;
 };
 
 type TokenType =

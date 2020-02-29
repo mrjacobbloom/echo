@@ -1,4 +1,6 @@
 import options from './options';
+import renderTokens from './renderTokens';
+import prettyPrint from './prettyPrint';
 
 const ignoreIdents: any[] = [
   // public interface
@@ -35,9 +37,12 @@ const handler: ProxyHandler<any> = {
 
 export default function generateEcho(): Echo {
   const Echo: Partial<Echo> = function Echo() {};
-  Echo.stack = [];
+  Echo.stack = [{type: 'get', identifier: 'Echo'}];
   Echo._self = Echo as Echo;
-  Echo.render = null;
+  Echo.render = () => {
+    const t = renderTokens(Echo.stack);
+    return prettyPrint(t);
+  }
 
   Echo.toString = () => Echo.render().plaintext;
   Echo[Symbol.toPrimitive] = () => Echo.render().plaintext;

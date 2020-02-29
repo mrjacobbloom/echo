@@ -407,9 +407,12 @@
   };
   function generateEcho() {
       var Echo = function Echo() { };
-      Echo.stack = [];
+      Echo.stack = [{ type: 'get', identifier: 'Echo' }];
       Echo._self = Echo;
-      Echo.render = null;
+      Echo.render = function () {
+          var t = renderTokens(Echo.stack);
+          return prettyPrint(t);
+      };
       Echo.toString = function () { return Echo.render().plaintext; };
       Echo[Symbol.toPrimitive] = function () { return Echo.render().plaintext; };
       if (symbolInspect) {
@@ -450,11 +453,6 @@
   var tokens = [];
   attachToGlobal('Echo', function () {
       var Echo = generateEcho();
-      Echo.stack.push({ type: 'get', identifier: 'Echo' });
-      Echo.render = function () {
-          var t = renderTokens(Echo.stack);
-          return prettyPrint(t);
-      };
       if (options.output === 'log') {
           echoCount++;
           setTimeout(function () {
