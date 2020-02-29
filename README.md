@@ -31,6 +31,9 @@ Once you've done that, you can interact with it via the console/REPL, or even in
 
 /* > */ Echo.gfdgfd[4][' fff '](undefined, true, -Infinity)
 /* < */ Echo.gfdgfd[4][' fff '](undefined, true, -Infinity)
+
+/* > */ Echo`foo${[1, 2, 3, 4]}bar`.baz
+/* < */ Echo`foo${[1, 2, 3, 4]}bar`.baz
 ```
 
 Note that Echo runs perfectly in Node, but requires Node 10.12 or later.
