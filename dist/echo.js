@@ -62,7 +62,7 @@
    * @param options
    */
   function escapeString(string) {
-      var d = options.stringDelimiter;
+      var d = string.match('\n') ? options.stringDelimiter : '`';
       var regexp = new RegExp(d, 'g');
       return d + string.replace(regexp, '\\' + d) + d;
   }
@@ -348,17 +348,18 @@
   }
 
   var ignoreIdents = [
-      // internal / public interface
-      'options', '_self',
-      // to avoid breaking the console, or JavaScript altogether
-      'toString', 'valueOf', 'constructor', 'prototype', '__proto__'
+      // public interface
+      'options', 'then', 'toString',
+      // internals
+      '_self',
+      // avoid breaking the console, or JavaScript altogether
+      'valueOf', 'constructor', 'prototype', '__proto__'
   ];
   var symbolInspect = typeof process !== undefined ? Symbol.for('nodejs.util.inspect.custom') : null;
   var handler = {
       get: function (target, identifier) {
           if (typeof identifier === 'symbol'
-              || ignoreIdents.includes(identifier)
-              || target.options.output === 'promise' && identifier === 'then') {
+              || ignoreIdents.includes(identifier)) {
               if (identifier == 'options')
                   target.stack = [];
               return target[identifier];
@@ -380,37 +381,10 @@
       Echo.stack = [];
       Echo._self = Echo;
       Echo.render = null;
-      Echo.toString = function () {
-          if (options.output === 'toString') {
-              return Echo.render().plaintext;
-          }
-          else {
-              return '';
-          }
-      };
-      var toPrimitiveOriginal = Echo[Symbol.toPrimitive];
-      Object.defineProperty(Echo, Symbol.toPrimitive, {
-          get: function () {
-              if (options.output === 'toString') {
-                  return function () { return Echo.render().plaintext; };
-              }
-              else {
-                  return toPrimitiveOriginal;
-              }
-          }
-      });
+      Echo.toString = function () { return Echo.render().plaintext; };
+      Echo[Symbol.toPrimitive] = function () { return Echo.render().plaintext; };
       if (symbolInspect) {
-          var inspectOriginal_1 = Echo[symbolInspect];
-          Object.defineProperty(Echo, symbolInspect, {
-              get: function () {
-                  if (options.output === 'toString') {
-                      return function () { return Echo.render().formatted[0]; };
-                  }
-                  else {
-                      return inspectOriginal_1;
-                  }
-              }
-          });
+          Echo[symbolInspect] = function () { return Echo.render().formatted[0]; };
       }
       Object.defineProperty(Echo, 'then', {
           get: function () {
@@ -448,6 +422,10 @@
   attachToGlobal('Echo', function () {
       var Echo = generateEcho();
       Echo.stack.push({ type: 'get', identifier: 'Echo' });
+      Echo.render = function () {
+          var t = renderTokens(Echo.stack);
+          return prettyPrint(t);
+      };
       if (options.output === 'log') {
           echoCount++;
           setTimeout(function () {
@@ -465,12 +443,6 @@
                   tokens = [];
               }
           }, 0);
-      }
-      else {
-          Echo.render = function () {
-              var t = renderTokens(Echo.stack);
-              return prettyPrint(t);
-          };
       }
       return Echo.proxy;
   });

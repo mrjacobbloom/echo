@@ -1,11 +1,14 @@
 import options from './options';
 
 const ignoreIdents: any[] = [
-  // internal / public interface
-  'options', '_self',
+  // public interface
+  'options', 'then', 'toString',
 
-  // to avoid breaking the console, or JavaScript altogether
-  'toString', 'valueOf', 'constructor', 'prototype', '__proto__'
+  // internals
+  '_self',
+
+  // avoid breaking the console, or JavaScript altogether
+  'valueOf', 'constructor', 'prototype', '__proto__'
 ];
 
 const symbolInspect = typeof process !== undefined ? Symbol.for('nodejs.util.inspect.custom') : null;
@@ -13,8 +16,7 @@ const symbolInspect = typeof process !== undefined ? Symbol.for('nodejs.util.ins
 const handler: ProxyHandler<any> = {
   get(target, identifier) {
     if(typeof identifier === 'symbol'
-    || ignoreIdents.includes(identifier)
-    || target.options.output === 'promise' && identifier === 'then') {
+    || ignoreIdents.includes(identifier)) {
       if(identifier == 'options') target.stack = [];
       return target[identifier];
     }
@@ -37,34 +39,10 @@ export default function generateEcho(): Echo {
   Echo._self = Echo as Echo;
   Echo.render = null;
 
-  Echo.toString = () => {
-    if(options.output === 'toString') {
-      return Echo.render().plaintext;
-    } else {
-      return '';
-    }
-  };
-  const toPrimitiveOriginal = Echo[Symbol.toPrimitive];
-  Object.defineProperty(Echo, Symbol.toPrimitive, {
-    get() {
-      if(options.output === 'toString') {
-        return () => Echo.render().plaintext;
-      } else {
-        return toPrimitiveOriginal;
-      }
-    }
-  });
+  Echo.toString = () => Echo.render().plaintext;
+  Echo[Symbol.toPrimitive] = () => Echo.render().plaintext;
   if(symbolInspect) {
-    const inspectOriginal = Echo[symbolInspect];
-    Object.defineProperty(Echo, symbolInspect, {
-      get() {
-        if(options.output === 'toString') {
-          return () => Echo.render().formatted[0];
-        } else {
-          return inspectOriginal;
-        }
-      }
-    })
+    Echo[symbolInspect] = () => Echo.render().formatted[0];
   }
   Object.defineProperty(Echo, 'then', {
     get() {

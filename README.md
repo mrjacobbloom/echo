@@ -44,7 +44,7 @@ Echo has a few options that can be configured in the `Echo.options` object:
 | `bracketNotationOptional` | Boolean | `true` | When true, use heuristics to decide when to use dot notation. Otherwise, always use square-braket notation. |
 | `parensOptional` | Boolean | `true` | When true, use heuristics to decide whether to wrap subexpressions in parentheses. When false, always wrap them. |
 | `constructorParensOptional` | Boolean | `true` | When true, drop parentheses for constructors with no arguments. |
-| `stringDelimiter` | String | `"'"` | What character is used to delimit (bookend) strings, and is escaped from strings. |
+| `stringDelimiter` | String | `"'"` | What character is used to delimit (bookend) strings, and is escaped from strings. If the string contains a newline, this is ignored and the string is rendered as a template string. |
 | `colorMode` | `"browser"`, `"ansi"`, `"off"` | [auto detected] | Enable or disable syntax highlighting and the mode used to set colors. |
 | `theme` | `"chrome"`, `"firefox"` | [auto detected] | Which DevTools' syntax highlighting theme to use. Defaults to Chrome unless you're using Firefox.
 | `output` | `"log"`, `"toString"`, `"promise"` | `"log"` | Select the strategy for the output to be printed. See below. |
@@ -59,7 +59,7 @@ The way Echo works means it never knows if the expression has finished evaluatin
 Echo provides 3 strategies to work around this, which you can switch between by configuring `Echo.options.output`:
 
 - `"log"` (default) - Echo uses setTimeout to wait 1 tick. Then, it prints the longest token list found to the console
-- `"toString"` - As many stringifier functions as possible cast to the output. Chrome's console shows this stringified value, while Firefox's does not. This also makes the output usable from code via `String(...)`. Affected functions include:
+- `"toString"` - As many stringifier functions as possible cast to the output (this is always true, but logging is disabled in this mode).
   - `Echo.toString`
   - `Echo[Symbol.toPrimitive]`
   - `Echo[Symbol.for('nodejs.util.inspect.custom')]`
