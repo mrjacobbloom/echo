@@ -406,7 +406,7 @@
       },
   };
   function generateEcho() {
-      var Echo = function Echo() { };
+      var Echo = function Echo() { }; // eslint-disable-line
       Echo.stack = [{ type: 'get', identifier: 'Echo' }];
       Echo._self = Echo;
       Echo.render = function () {

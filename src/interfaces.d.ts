@@ -11,7 +11,7 @@ type Options = {
   output: 'log' | 'toString' | 'promise';
 };
 
-interface Echo {
+type Echo = {
   // must be both callable and constructible for the Proxy to work
   (): void;
   new(): Echo;

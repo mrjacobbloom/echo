@@ -21,7 +21,7 @@ export default function prettyPrint(tokens: Token[]): PrettyPrintOutput {
     const styles = [];
     for(const token of tokens) {
       formatString += '%c' + token.value.replace(/%/g, '%%');
-        styles.push(theme[token.type] || theme.default);
+      styles.push(theme[token.type] || theme.default);
     }
     ret.formatted = [formatString, ...styles];
   } else {

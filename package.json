@@ -5,7 +5,7 @@
   "main": "dist/echo.js",
   "types": "dist/declarations.d.ts",
   "scripts": {
-    "build": "npx rollup -c",
+    "build": "npx eslint src/*.ts && npx rollup -c",
     "test": "npx mocha",
     "travis": "npm run build && npm test"
   },
@@ -20,7 +20,10 @@
   },
   "homepage": "https://github.com/mrjacobbloom/echo#readme",
   "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^2.21.0",
+    "@typescript-eslint/parser": "^2.21.0",
     "chai": "^4.2.0",
+    "eslint": "^6.8.0",
     "mocha": "^7.1.0",
     "rollup": "^1.17.0",
     "rollup-plugin-banner": "^0.2.0",

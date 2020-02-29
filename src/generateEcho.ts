@@ -36,18 +36,18 @@ const handler: ProxyHandler<any> = {
 };
 
 export default function generateEcho(): Echo {
-  const Echo: Partial<Echo> = function Echo() {};
+  const Echo: Partial<Echo> = function Echo() {}; // eslint-disable-line
   Echo.stack = [{type: 'get', identifier: 'Echo'}];
   Echo._self = Echo as Echo;
-  Echo.render = () => {
+  Echo.render = (): PrettyPrintOutput => {
     const t = renderTokens(Echo.stack);
     return prettyPrint(t);
   }
 
-  Echo.toString = () => Echo.render().plaintext;
-  Echo[Symbol.toPrimitive] = () => Echo.render().plaintext;
+  Echo.toString = (): string => Echo.render().plaintext;
+  Echo[Symbol.toPrimitive] = (): string => Echo.render().plaintext;
   if(symbolInspect) {
-    Echo[symbolInspect] = () => Echo.render().formatted[0];
+    Echo[symbolInspect] = (): string => Echo.render().formatted[0];
   }
   Object.defineProperty(Echo, 'then', {
     get() {
