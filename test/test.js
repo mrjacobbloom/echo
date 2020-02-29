@@ -309,7 +309,7 @@ describe('renderTokens tests', () => {
       10, -10, 0.6, 10n, Infinity, -Infinity, NaN,
       'foo', 'b\'ar',
       true, null, undefined,
-      Array, [], () => {}, function namedFunc() {}
+      Array, [1, 2], () => {}, function namedFunc() {}
     ];
     const ARG_TOKENS = [
       { value: '10', type: 'number' },
@@ -351,7 +351,12 @@ describe('renderTokens tests', () => {
       { value: 'Array', type: 'variable' },
       { value: ',', type: 'operator' },
       { value: ' ', type: 'default' },
-      { value: 'Array {}', type: 'object' },
+      { value: '[', type: 'operator' },
+      { value: '1', type: 'number' },
+      { value: ',', type: 'operator' },
+      { value: ' ', type: 'default' },
+      { value: '2', type: 'number' },
+      { value: ']', type: 'operator' },
       { value: ',', type: 'operator' },
       { value: ' ', type: 'default' },
       { value: '() => {}', type: 'default' },

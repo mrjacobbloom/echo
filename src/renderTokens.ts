@@ -39,7 +39,7 @@ function renderTemplateLiteralFromTagArgs([{raw}, ...args]: [TemplateStringsArra
   const tokens: Token[] = [prevToken];
   for(let i = 0; i < args.length; i++) {
     prevToken.value += '${';
-    tokens.push(handleArgs([args[i]])[0]); // todo: break out handleArg(?) into its own function?
+    tokens.push(...handleArgs([args[i]])); // todo: break out handleArg(?) into its own function?
     prevToken = { value: `}${raw[i + 1]}`, type: 'string' };
     tokens.push(prevToken);
   }
@@ -93,10 +93,12 @@ function handleArgs(args: any[]): Token[] {
           break;
         }
         case 'object': {
-          // in my experience this is almost always wrong, but closer than [object Object]
           if(arg) {
             const name = arg.__proto__.name || arg.constructor.name;
-            if(name && name != 'Object') {
+            if (Array.isArray(arg)) {
+              out.push(T.operator`[`, ...handleArgs(arg), T.operator`]`)
+            } else if(name && name != 'Object') {
+              // in my experience this is almost always wrong, but closer than [object Object]
               out.push({value: `${name} {}`, type: 'object'});
             } else {
               out.push({value: '{}', type: 'object'});
