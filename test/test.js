@@ -413,7 +413,7 @@ describe('renderTokens tests', () => {
     });
   });
 
-  describe.skip('Parens ambiguities and nonambiguities tests', () => {
+  describe('Parens ambiguities and nonambiguities tests', () => {
     it('new Echo', async () => expect((await new Echo).plaintext).to.equal('new Echo'));
     it('new Echo(1)', async () => expect((await new Echo(1)).plaintext).to.equal('new Echo(1)'));
     it('new (Echo())', async () => expect((await new (Echo())).plaintext).to.equal('new (Echo())'));
@@ -426,8 +426,10 @@ describe('renderTokens tests', () => {
     it('(new Echo(1)).foo', async () => expect((await (new Echo(1)).foo).plaintext).to.equal('(new Echo(1)).foo'));
     it('(new (Echo())).foo', async () => expect((await (new (Echo())).foo).plaintext).to.equal('(new (Echo())).foo'));
     it('(new (Echo())).foo(1)', async () => expect((await (new (Echo())).foo(1)).plaintext).to.equal('(new (Echo())).foo(1)'));
-    it('new ((Echo()).foo())', async () => expect((await new ((Echo()).foo())).plaintext).to.equal('new ((Echo()).foo())'));
+    it('(new (Echo())(1)).foo(1)', async () => expect((await (new (Echo())(1)).foo(1)).plaintext).to.equal('(new (Echo())(1)).foo(1)'));
+    it('new (Echo().foo())', async () => expect((await new (Echo().foo())).plaintext).to.equal('new (Echo().foo())'));
     it('new new Echo', async () => expect((await new new Echo).plaintext).to.equal('new new Echo'));
     it('new new Echo(1)', async () => expect((await new new Echo(1)).plaintext).to.equal('new new Echo(1)'));
+    it('Echo()()()', async () => expect((await Echo()()()).plaintext).to.equal('Echo()()()'));
   });
 });

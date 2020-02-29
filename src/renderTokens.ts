@@ -139,7 +139,6 @@ const identRegEx = /^[_$a-zA-Z][_$a-zA-Z0-9]*$/;
  */
 export default function renderTokens(stack: TrappedOperation[]): Token[] {
   let out: Token[] = [];
-  let constructorAmbiguityRisk = false;
   for(let i = 0; i < stack.length; i++) {
     const prevType = i > 0 ? stack[i - 1].type : '';
     const item = stack[i];
@@ -162,12 +161,8 @@ export default function renderTokens(stack: TrappedOperation[]): Token[] {
             identToken = {value: item.identifier, type: 'property'};
           }
 
-          let needsParens = prevType !== 'get';
-          // do not wrap in parens if already wrapped in parens
-          if (out[0].value === '(' && out[out.length - 1].value === ')') needsParens = false;
-
           // If !parensOptional or heuristics say we need parens, wrap prior stuff in parens
-          if (!options.parensOptional || needsParens) {
+          if (!options.parensOptional || prevType === 'construct') {
             out = [T.operator`(`, ...out, T.operator`)`];
           }
 
@@ -186,12 +181,10 @@ export default function renderTokens(stack: TrappedOperation[]): Token[] {
           args = [T.operator`(`, ...handleArgs(item.args), T.operator`)`]
         }
         // decide whether to wrap the constructor in parentheses for clarity
-        if(options.parensOptional && !constructorAmbiguityRisk) {
+        if(options.parensOptional && prevType !== 'apply') {
           out = [T.keyword`new`, T.space(), ...out, ...args];
-          if (args.length) constructorAmbiguityRisk = true;
         } else {
           out = [T.keyword`new`, T.space(), T.operator`(`, ...out, T.operator`)`, ...args];
-          constructorAmbiguityRisk = args.length > 1;
         }
         break;
       }
@@ -199,12 +192,11 @@ export default function renderTokens(stack: TrappedOperation[]): Token[] {
         if (calledAsTemplateTag(item.args)) {
           out = [...out, ...renderTemplateLiteralFromTagArgs(item.args as any)]
         } else {
-          if (prevType === 'construct') {
-            out = [T.operator`(`, ...out, T.operator`(`, ...handleArgs(item.args), T.operator`)`, T.operator`)`];
+          if (!options.parensOptional || prevType === 'construct') {
+            out = [T.operator`(`, ...out, T.operator`)`, T.operator`(`, ...handleArgs(item.args), T.operator`)`];
           } else {
             out = [...out, T.operator`(`, ...handleArgs(item.args), T.operator`)`];
           }
-          constructorAmbiguityRisk = true;
         }
         break;
       }

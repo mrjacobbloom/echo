@@ -192,7 +192,6 @@
    */
   function renderTokens(stack) {
       var out = [];
-      var constructorAmbiguityRisk = false;
       for (var i = 0; i < stack.length; i++) {
           var prevType = i > 0 ? stack[i - 1].type : '';
           var item = stack[i];
@@ -218,12 +217,8 @@
                       else {
                           identToken = { value: item.identifier, type: 'property' };
                       }
-                      var needsParens = prevType !== 'get';
-                      // do not wrap in parens if already wrapped in parens
-                      if (out[0].value === '(' && out[out.length - 1].value === ')')
-                          needsParens = false;
                       // If !parensOptional or heuristics say we need parens, wrap prior stuff in parens
-                      if (!options.parensOptional || needsParens) {
+                      if (!options.parensOptional || prevType === 'construct') {
                           out = [T.operator(templateObject_4 || (templateObject_4 = __makeTemplateObject(["("], ["("])))].concat(out, [T.operator(templateObject_5 || (templateObject_5 = __makeTemplateObject([")"], [")"])))]);
                       }
                       if (identToken.type === 'property') {
@@ -242,14 +237,11 @@
                       args = [T.operator(templateObject_9 || (templateObject_9 = __makeTemplateObject(["("], ["("])))].concat(handleArgs(item.args), [T.operator(templateObject_10 || (templateObject_10 = __makeTemplateObject([")"], [")"])))]);
                   }
                   // decide whether to wrap the constructor in parentheses for clarity
-                  if (options.parensOptional && !constructorAmbiguityRisk) {
+                  if (options.parensOptional && prevType !== 'apply') {
                       out = [T.keyword(templateObject_11 || (templateObject_11 = __makeTemplateObject(["new"], ["new"]))), T.space()].concat(out, args);
-                      if (args.length)
-                          constructorAmbiguityRisk = true;
                   }
                   else {
                       out = [T.keyword(templateObject_12 || (templateObject_12 = __makeTemplateObject(["new"], ["new"]))), T.space(), T.operator(templateObject_13 || (templateObject_13 = __makeTemplateObject(["("], ["("])))].concat(out, [T.operator(templateObject_14 || (templateObject_14 = __makeTemplateObject([")"], [")"])))], args);
-                      constructorAmbiguityRisk = args.length > 1;
                   }
                   break;
               }
@@ -258,13 +250,12 @@
                       out = out.concat(renderTemplateLiteralFromTagArgs(item.args));
                   }
                   else {
-                      if (prevType === 'construct') {
-                          out = [T.operator(templateObject_15 || (templateObject_15 = __makeTemplateObject(["("], ["("])))].concat(out, [T.operator(templateObject_16 || (templateObject_16 = __makeTemplateObject(["("], ["("])))], handleArgs(item.args), [T.operator(templateObject_17 || (templateObject_17 = __makeTemplateObject([")"], [")"]))), T.operator(templateObject_18 || (templateObject_18 = __makeTemplateObject([")"], [")"])))]);
+                      if (!options.parensOptional || prevType === 'construct') {
+                          out = [T.operator(templateObject_15 || (templateObject_15 = __makeTemplateObject(["("], ["("])))].concat(out, [T.operator(templateObject_16 || (templateObject_16 = __makeTemplateObject([")"], [")"]))), T.operator(templateObject_17 || (templateObject_17 = __makeTemplateObject(["("], ["("])))], handleArgs(item.args), [T.operator(templateObject_18 || (templateObject_18 = __makeTemplateObject([")"], [")"])))]);
                       }
                       else {
                           out = out.concat([T.operator(templateObject_19 || (templateObject_19 = __makeTemplateObject(["("], ["("])))], handleArgs(item.args), [T.operator(templateObject_20 || (templateObject_20 = __makeTemplateObject([")"], [")"])))]);
                       }
-                      constructorAmbiguityRisk = true;
                   }
                   break;
               }
