@@ -11,8 +11,8 @@ const specialIdentTypes = {
 };
 /**
  * Wrap a string in the selected delimiter and escape that delimiter in the string.
- * @param string String to escape
- * @param options 
+ * @param {string} string String to escape
+ * @returns {string} Escaped string, including delimiters.
  */
 function escapeString(string: string): string {
   const d = string.match('\n') ? '`' : options.stringDelimiter;
@@ -20,6 +20,32 @@ function escapeString(string: string): string {
   return d + string.replace(regexp, '\\' + d) + d;
 }
 
+/**
+ * Determine whether the function was called as a template tag
+ * @param {any[]} args Arguments list of the apply
+ * @returns {boolean}
+ */
+function calledAsTemplateTag(args: any[]): boolean {
+  return args[0] && Array.isArray(args[0]) && Array.isArray((args[0] as any).raw);
+}
+
+/**
+ * Reconstruct template literal from arguments to template tag
+ * @param {any[]} args Arguments list of the apply
+ * @returns {string} Reconstructed literal, including backticks
+ */
+function renderTemplateLiteralFromTagArgs([{raw}, ...args]: [TemplateStringsArray, ...any[]]): Token[] {
+  let prevToken: Token = { value: `\`${raw[0]}`, type: 'string' };
+  const tokens: Token[] = [prevToken];
+  for(let i = 0; i < args.length; i++) {
+    prevToken.value += '${';
+    tokens.push(handleArgs([args[i]])[0]); // todo: break out handleArg(?) into its own function?
+    prevToken = { value: `}${raw[i + 1]}`, type: 'string' };
+    tokens.push(prevToken);
+  }
+  prevToken.value += '`';
+  return tokens;
+}
 
 /**
  * Tags to generate tokens from template strings, and whitespace getter.
@@ -27,6 +53,9 @@ function escapeString(string: string): string {
 const T = {
   operator([value]: TemplateStringsArray): Token {
     return { value, type: 'operator' };
+  },
+  string([value]: TemplateStringsArray): Token {
+    return { value, type: 'string' };
   },
   keyword([value]: TemplateStringsArray): Token {
     return { value, type: 'keyword' };
@@ -165,12 +194,16 @@ export default function renderTokens(stack: TrappedOperation[]): Token[] {
         break;
       }
       case 'apply': {
-        if (prevType === 'construct') {
-          out = [T.operator`(`, ...out, T.operator`(`, ...handleArgs(item.args), T.operator`)`, T.operator`)`];
+        if (calledAsTemplateTag(item.args)) {
+          out = [...out, ...renderTemplateLiteralFromTagArgs(item.args as any)]
         } else {
-          out = [...out, T.operator`(`, ...handleArgs(item.args), T.operator`)`];
+          if (prevType === 'construct') {
+            out = [T.operator`(`, ...out, T.operator`(`, ...handleArgs(item.args), T.operator`)`, T.operator`)`];
+          } else {
+            out = [...out, T.operator`(`, ...handleArgs(item.args), T.operator`)`];
+          }
+          constructorAmbiguityRisk = true;
         }
-        constructorAmbiguityRisk = true;
         break;
       }
     }

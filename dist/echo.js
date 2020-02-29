@@ -58,13 +58,39 @@
   };
   /**
    * Wrap a string in the selected delimiter and escape that delimiter in the string.
-   * @param string String to escape
-   * @param options
+   * @param {string} string String to escape
+   * @returns {string} Escaped string, including delimiters.
    */
   function escapeString(string) {
       var d = string.match('\n') ? '`' : options.stringDelimiter;
       var regexp = new RegExp(d, 'g');
       return d + string.replace(regexp, '\\' + d) + d;
+  }
+  /**
+   * Determine whether the function was called as a template tag
+   * @param {any[]} args Arguments list of the apply
+   * @returns {boolean}
+   */
+  function calledAsTemplateTag(args) {
+      return args[0] && Array.isArray(args[0]) && Array.isArray(args[0].raw);
+  }
+  /**
+   * Reconstruct template literal from arguments to template tag
+   * @param {any[]} args Arguments list of the apply
+   * @returns {string} Reconstructed literal, including backticks
+   */
+  function renderTemplateLiteralFromTagArgs(_a) {
+      var raw = _a[0].raw, args = _a.slice(1);
+      var prevToken = { value: "`" + raw[0], type: 'string' };
+      var tokens = [prevToken];
+      for (var i = 0; i < args.length; i++) {
+          prevToken.value += '${';
+          tokens.push(handleArgs([args[i]])[0]); // todo: break out handleArg(?) into its own function?
+          prevToken = { value: "}" + raw[i + 1], type: 'string' };
+          tokens.push(prevToken);
+      }
+      prevToken.value += '`';
+      return tokens;
   }
   /**
    * Tags to generate tokens from template strings, and whitespace getter.
@@ -73,6 +99,10 @@
       operator: function (_a) {
           var value = _a[0];
           return { value: value, type: 'operator' };
+      },
+      string: function (_a) {
+          var value = _a[0];
+          return { value: value, type: 'string' };
       },
       keyword: function (_a) {
           var value = _a[0];
@@ -221,13 +251,18 @@
                   break;
               }
               case 'apply': {
-                  if (prevType === 'construct') {
-                      out = [T.operator(templateObject_13 || (templateObject_13 = __makeTemplateObject(["("], ["("])))].concat(out, [T.operator(templateObject_14 || (templateObject_14 = __makeTemplateObject(["("], ["("])))], handleArgs(item.args), [T.operator(templateObject_15 || (templateObject_15 = __makeTemplateObject([")"], [")"]))), T.operator(templateObject_16 || (templateObject_16 = __makeTemplateObject([")"], [")"])))]);
+                  if (calledAsTemplateTag(item.args)) {
+                      out = out.concat(renderTemplateLiteralFromTagArgs(item.args));
                   }
                   else {
-                      out = out.concat([T.operator(templateObject_17 || (templateObject_17 = __makeTemplateObject(["("], ["("])))], handleArgs(item.args), [T.operator(templateObject_18 || (templateObject_18 = __makeTemplateObject([")"], [")"])))]);
+                      if (prevType === 'construct') {
+                          out = [T.operator(templateObject_13 || (templateObject_13 = __makeTemplateObject(["("], ["("])))].concat(out, [T.operator(templateObject_14 || (templateObject_14 = __makeTemplateObject(["("], ["("])))], handleArgs(item.args), [T.operator(templateObject_15 || (templateObject_15 = __makeTemplateObject([")"], [")"]))), T.operator(templateObject_16 || (templateObject_16 = __makeTemplateObject([")"], [")"])))]);
+                      }
+                      else {
+                          out = out.concat([T.operator(templateObject_17 || (templateObject_17 = __makeTemplateObject(["("], ["("])))], handleArgs(item.args), [T.operator(templateObject_18 || (templateObject_18 = __makeTemplateObject([")"], [")"])))]);
+                      }
+                      constructorAmbiguityRisk = true;
                   }
-                  constructorAmbiguityRisk = true;
                   break;
               }
           }
