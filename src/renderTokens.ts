@@ -15,7 +15,7 @@ const specialIdentTypes = {
  * @param options 
  */
 function escapeString(string: string): string {
-  const d = string.match('\n') ? options.stringDelimiter : '`';
+  const d = string.match('\n') ? '`' : options.stringDelimiter;
   const regexp = new RegExp(d, 'g');
   return d + string.replace(regexp, '\\' + d) + d;
 }

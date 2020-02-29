@@ -62,7 +62,7 @@
    * @param options
    */
   function escapeString(string) {
-      var d = string.match('\n') ? options.stringDelimiter : '`';
+      var d = string.match('\n') ? '`' : options.stringDelimiter;
       var regexp = new RegExp(d, 'g');
       return d + string.replace(regexp, '\\' + d) + d;
   }
