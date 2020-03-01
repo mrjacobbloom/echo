@@ -6,19 +6,6 @@ console (now with syntax highlighting)
 
 ![Demo of Echo in action](https://raw.githubusercontent.com/mrjacobbloom/echo/master/demo.gif)
 
-## Usage
-
-The easiest way to use Echo is to paste [`dist/echo.min.js`](https://raw.githubusercontent.com/mrjacobbloom/echo/master/dist/echo.min.js) into your console/REPL (note: Echo is harmless, but you should always [be careful about pasting code into your console!](https://en.wikipedia.org/wiki/Self-XSS)). You can also import it like so:
-
-```javascript
-// in ES module
-import {} from './echo.js'; // attaches itself to the global, so you don't actually want the import to be named Echo
-// or in Node <12.??
-require('./echo.js');
-```
-
-Once you've done that, you can interact with it via the console/REPL, or even in scripts:
-
 ```javascript
 /* > */ Echo
 /* < */ Echo
@@ -36,7 +23,31 @@ Once you've done that, you can interact with it via the console/REPL, or even in
 /* < */ Echo`foo${[1, 2, 3, 4]}bar`.baz
 ```
 
-Note that Echo runs perfectly in Node, but requires Node 10.12 or later.
+## Usage
+
+### Browser
+
+The easiest way to use Echo is to paste [`dist/echo.min.js`](https://raw.githubusercontent.com/mrjacobbloom/echo/master/dist/echo.min.js) into your console (note: Echo is harmless, but you should always [be careful about pasting code into your console!](https://en.wikipedia.org/wiki/Self-XSS)).
+
+### Node
+
+Echo requires Node 10.12 or later.
+
+```shell
+npm install echo # TODO: update this when we know what the package name is
+node --require echo
+```
+
+You can also import it into your code. Note that Echo attaches itself to the global,
+so you don't actually want the import to be named Echo.
+
+```javascript
+// in ES module
+import {} from 'echo'; // todo: verify that this doesn't fail horribly
+
+// or in script (non-module)
+require('./echo.js');
+```
 
 ## API
 
