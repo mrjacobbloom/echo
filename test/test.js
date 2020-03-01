@@ -1,5 +1,9 @@
+const { promisify } = require('util');
 const { expect } = require('chai');
+// const { spy } = require('sinon');
 require('../dist/echo');
+
+const setTimeoutAsync = promisify(setTimeout);
 
 beforeEach(() => {
   Echo.options.bracketNotationOptional = true;
@@ -538,3 +542,23 @@ describe('prettyPrint tests', () => {
     });
   });
 });
+
+// describe('autoLog tests', () => {
+//   afterEach(() => {
+//     if (console.log.restore) console.log.restore();
+//   })
+//   it('does not autoLog if autoLog=false', async () => {
+//     Echo.options.autoLog = false;
+//     spy(console.log);
+//     Echo.foo;
+//     await setTimeoutAsync(10);
+//     expect(console.log.called).to.be.false;
+//   });
+//   it('Addidional Echoes as arguments do not cause extra logging', async () => {
+//     Echo.options.autoLog = true;
+//     spy(console.log);
+//     Echo.foo(Echo.bar);
+//     await setTimeoutAsync(10);
+//     expect(console.log.calledOnce).to.be.true;
+//   });
+// });
