@@ -42,8 +42,8 @@ You can also import it into your code. Note that Echo attaches itself to the glo
 so you don't actually want the import to be named Echo.
 
 ```javascript
-// in ES module
-import {} from 'echo-proxy'; // todo: verify that this doesn't fail horribly
+// in ES module (package.json type=module)
+import {} from 'echo-proxy';
 
 // or in script (non-module)
 require('echo-proxy');
