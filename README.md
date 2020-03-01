@@ -34,8 +34,8 @@ The easiest way to use Echo is to paste [`dist/echo.min.js`](https://raw.githubu
 Echo requires Node 10.12 or later.
 
 ```shell
-npm install echo # TODO: update this when we know what the package name is
-node --require echo
+npm install echo-proxy
+node --require echo-proxy
 ```
 
 You can also import it into your code. Note that Echo attaches itself to the global,
@@ -43,10 +43,10 @@ so you don't actually want the import to be named Echo.
 
 ```javascript
 // in ES module
-import {} from 'echo'; // todo: verify that this doesn't fail horribly
+import {} from 'echo-proxy'; // todo: verify that this doesn't fail horribly
 
 // or in script (non-module)
-require('./echo.js');
+require('echo-proxy');
 ```
 
 ## API
