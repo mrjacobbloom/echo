@@ -515,14 +515,26 @@ describe('renderTokens tests', () => {
 });
 
 describe('prettyPrint tests', () => {
-  it('Browser mode escapes %\'s', async () => {
-    Echo.options.colorMode = 'browser';
-    const { formatted: [ formatString ] } = await Echo('%s', '%c', '%d');
-    expect(formatString).to.include('%%s').and.include('%%c').and.include('%%d');
+  describe('colorMode=\'browser\'', () => {
+    beforeEach(() => Echo.options.colorMode = 'browser');
+    it('Browser mode escapes %\'s', async () => {
+      const { formatted: [ formatString ] } = await Echo('%s', '%c', '%d');
+      expect(formatString).to.include('%%s').and.include('%%c').and.include('%%d');
+    });
+    it('Neighboring tokens with same style are coalesced', async () => {
+      const { formatted: [ formatString ] } = await Echo(1)()()();
+      expect(formatString).to.equal('%cEcho(%c1%c)()()()');
+    });
   });
-  it('ANSI output ends with reset character', async () => {
-    Echo.options.colorMode = 'ansi';
-    const { formatted: [ formatString ] } = await Echo.foo();
-    expect(formatString.endsWith('\x1b[0m')).to.be.true;
+  describe('colorMode=\'ansi\'', () => {
+    beforeEach(() => Echo.options.colorMode = 'ansi');
+    it('ANSI output ends with reset character', async () => {
+      const { formatted: [ formatString ] } = await Echo.foo();
+      expect(formatString.endsWith('\x1b[0m')).to.be.true;
+    });
+    it('Neighboring tokens with same color code are coalesced', async () => {
+      const { formatted: [ formatString ] } = await Echo(1)()()();
+      expect(formatString).to.equal('\x1b[0mEcho(\x1b[34m1\x1b[0m)()()()\x1b[0m');
+    });
   });
 });

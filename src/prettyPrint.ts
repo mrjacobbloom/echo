@@ -19,16 +19,26 @@ export default function prettyPrint(tokens: Token[]): PrettyPrintOutput {
     const theme = THEMES[options.theme].browser;
     let formatString = '';
     const styles = [];
+    let prevStyle: string;
     for(const token of tokens) {
-      formatString += '%c' + token.value.replace(/%/g, '%%');
-      styles.push(theme[token.type] || theme.default);
+      const style = theme[token.type] || theme.default;
+      if (style !== prevStyle) {
+        formatString += '%c';
+        styles.push(style);
+      }
+      formatString += token.value.replace(/%/g, '%%');
+      prevStyle = style;
     }
     ret.formatted = [formatString, ...styles];
   } else {
     const theme = THEMES[options.theme].ansi;
     let out = '';
+    let prevColorCode: string;
     for(const token of tokens) {
-      out += (theme[token.type] || theme.default) + token.value;
+      const colorCode = theme[token.type] || theme.default
+      if (colorCode !== prevColorCode) out += colorCode;
+      out += token.value;
+      prevColorCode = colorCode;
     }
     out += '\x1b[0m'; // force reset
     ret.formatted = [out]

@@ -356,19 +356,30 @@
           var theme = THEMES[options.theme].browser;
           var formatString = '';
           var styles = [];
+          var prevStyle = void 0;
           for (var _i = 0, tokens_1 = tokens; _i < tokens_1.length; _i++) {
               var token = tokens_1[_i];
-              formatString += '%c' + token.value.replace(/%/g, '%%');
-              styles.push(theme[token.type] || theme.default);
+              var style = theme[token.type] || theme.default;
+              if (style !== prevStyle) {
+                  formatString += '%c';
+                  styles.push(style);
+              }
+              formatString += token.value.replace(/%/g, '%%');
+              prevStyle = style;
           }
           ret.formatted = [formatString].concat(styles);
       }
       else {
           var theme = THEMES[options.theme].ansi;
           var out = '';
+          var prevColorCode = void 0;
           for (var _a = 0, tokens_2 = tokens; _a < tokens_2.length; _a++) {
               var token = tokens_2[_a];
-              out += (theme[token.type] || theme.default) + token.value;
+              var colorCode = theme[token.type] || theme.default;
+              if (colorCode !== prevColorCode)
+                  out += colorCode;
+              out += token.value;
+              prevColorCode = colorCode;
           }
           out += '\x1b[0m'; // force reset
           ret.formatted = [out];
