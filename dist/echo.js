@@ -424,17 +424,19 @@
           var t = renderTokens(Echo.stack);
           return prettyPrint(t);
       };
+      //eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+      Echo.then = function () {
+          var args = [];
+          for (var _i = 0; _i < arguments.length; _i++) {
+              args[_i] = arguments[_i];
+          }
+          return Promise.prototype.then.apply(Promise.resolve(Echo.render()), args);
+      };
       Echo.toString = function () { return Echo.render().plaintext; };
       Echo[Symbol.toPrimitive] = function () { return Echo.render().plaintext; };
       if (symbolInspect) {
           Echo[symbolInspect] = function () { return Echo.render().formatted[0]; };
       }
-      Object.defineProperty(Echo, 'then', {
-          get: function () {
-              var p = Promise.resolve(Echo.render());
-              return Promise.prototype.then.bind(p);
-          }
-      });
       Echo.options = options;
       Echo.proxy = new Proxy(Echo, handler);
       return Echo;

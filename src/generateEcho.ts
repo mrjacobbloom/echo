@@ -43,18 +43,14 @@ export default function generateEcho(): Echo {
     const t = renderTokens(Echo.stack);
     return prettyPrint(t);
   }
+  //eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+  Echo.then = (...args) => Promise.prototype.then.apply(Promise.resolve(Echo.render()), args);
 
   Echo.toString = (): string => Echo.render().plaintext;
   Echo[Symbol.toPrimitive] = (): string => Echo.render().plaintext;
   if(symbolInspect) {
     Echo[symbolInspect] = (): string => Echo.render().formatted[0];
   }
-  Object.defineProperty(Echo, 'then', {
-    get() {
-      const p = Promise.resolve(Echo.render());
-      return Promise.prototype.then.bind(p);
-    }
-  });
 
   Echo.options = options;
   Echo.proxy = new Proxy(Echo, handler);
