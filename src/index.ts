@@ -1,28 +1,30 @@
 import options from './options';
-import renderTokens from './renderTokens';
-import prettyPrint from './prettyPrint';
 import generateEcho from './generateEcho';
 import attachToGlobal from './attachToGlobal';
 
 let echoCount = 0;
-let tokens: Token[] = [];
+let maxTokensLength = 0;
+let formatted: string[] = [];
 
 attachToGlobal('Echo', () => {
   const Echo = generateEcho();
-  if(options.output === 'log') {
+  if(options.autoLog) {
     echoCount++;
     setTimeout(() => {
       // deal with race between the whole expression and each of its sub-
       // expressions, as well as arguments that are other Echoes: just wait a
       // tick 'till they've all evaluated and use whichever stringified 
       // version is longest
-      const t = renderTokens(Echo.stack);
-      if(t.length > tokens.length) tokens = t;
+      const prettyPrinted = Echo.render();
+      if(prettyPrinted.tokens.length > maxTokensLength) {
+        maxTokensLength = prettyPrinted.tokens.length;
+        formatted = prettyPrinted.formatted
+      }
       echoCount--;
-      if(echoCount === 0 && tokens.length > 0) {
-        const {formatted} = prettyPrint(tokens);
+      if(echoCount === 0 && maxTokensLength > 0) {
         console.log(...formatted);
-        tokens = [];
+        maxTokensLength = 0;
+        formatted = [];
       }
     }, 0);
   }

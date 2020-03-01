@@ -4,7 +4,7 @@ import prettyPrint from './prettyPrint';
 
 const ignoreIdents: any[] = [
   // public interface
-  'options', 'then', 'toString',
+  'render', 'options', 'then', 'toString',
 
   // internals
   '_self',
@@ -51,12 +51,8 @@ export default function generateEcho(): Echo {
   }
   Object.defineProperty(Echo, 'then', {
     get() {
-      if(options.output === 'promise') {
-        const p = Promise.resolve(Echo.render());
-        return Promise.prototype.then.bind(p);
-      } else {
-        return handler.get(Echo, 'then', null);
-      }
+      const p = Promise.resolve(Echo.render());
+      return Promise.prototype.then.bind(p);
     }
   });
 

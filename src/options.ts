@@ -15,5 +15,5 @@ export default {
   parensOptional: true,
   stringDelimiter: "'",
   theme: (typeof navigator !== 'undefined' && navigator.userAgent.includes('Firefox')) ? 'firefox' : 'chrome',
-  output: 'log',
+  autoLog: true,
 } as Options;

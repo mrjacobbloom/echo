@@ -8,7 +8,7 @@ type Options = {
   colorMode: 'browser' | 'ansi' | 'off';
   stringDelimiter: '\'' | '"' | '`';
   theme: 'firefox' | 'chrome';
-  output: 'log' | 'toString' | 'promise';
+  autoLog: boolean;
 };
 
 type Echo = {
@@ -19,8 +19,9 @@ type Echo = {
   options: Options;
   _self: Echo;
   stack: TrappedOperation[];
-  proxy: any;
+  proxy: Echo; // TS has no concept of Proxy<T> since its typing are same as T
   render: () => PrettyPrintOutput;
+  then: typeof Promise.prototype.then;
 }
 
 /**

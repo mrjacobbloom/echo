@@ -8,7 +8,7 @@ import THEMES from './themes';
  * @param options
  */
 export default function prettyPrint(tokens: Token[]): PrettyPrintOutput {
-  const ret = {
+  const ret: PrettyPrintOutput = {
     tokens,
     plaintext: tokens.map(token => typeof token === 'string' ? token : token.value).join(''),
     formatted: null,

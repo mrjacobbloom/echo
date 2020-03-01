@@ -38,9 +38,44 @@ Once you've done that, you can interact with it via the console/REPL, or even in
 
 Note that Echo runs perfectly in Node, but requires Node 10.12 or later.
 
-## Options
+## API
 
-Echo has a few options that can be configured in the `Echo.options` object:
+The public API gets special treatment, and is not echoed. This also goes for
+JS-internal things like `__proto__` that lead to weird behavior when messed
+with. The following builtin functions are overridden to return the stringified
+Echo:
+
+- `Echo.toString`
+- `Echo[Symbol.toPrimitive]`
+- `Echo[Symbol.for('nodejs.util.inspect.custom')]`
+
+### `Echo.render()`
+
+_Example: `const { tokens } = Echo.foo().render()`_
+
+Returns an object with the following shape:
+
+```
+{
+  tokens: {value: string, type: string}[] -- The output broken up into typed "tokens," which is what Echo uses to do syntax highlighting
+  plaintext: string -- the tokens strung together without any syntax highlighting
+  formatted: string[] -- the tokens with syntax highlighting, formatted as arguments to console.log
+}
+```
+
+### `Echo.then(...)`
+
+_Example: `const { tokens } = await Echo.foo()`_
+
+Resolves to the value of `Echo.render()`.
+
+### `Echo.options`
+
+_Example: `Echo.options.theme = 'firefox'`_
+
+Can be used to configure Echo. This includes options to make it reflect how you
+would write code (for example, to always use parentheses with a constructor),
+and options that affect its behavior in other ways.
 
 | Property | Type/Options | Default | Explanation |
 | -------- | ------- | ------- | ----------- |
@@ -50,28 +85,21 @@ Echo has a few options that can be configured in the `Echo.options` object:
 | `stringDelimiter` | String | `"'"` | What character is used to delimit (bookend) strings, and is escaped from strings. If the string contains a newline, this is ignored and the string is rendered as a template string. |
 | `colorMode` | `"browser"`, `"ansi"`, `"off"` | [auto detected] | Enable or disable syntax highlighting and the mode used to set colors. |
 | `theme` | `"chrome"`, `"firefox"` | [auto detected] | Which DevTools' syntax highlighting theme to use. Defaults to Chrome unless you're using Firefox.
-| `output` | `"log"`, `"toString"`, `"promise"` | `"log"` | Select the strategy for the output to be printed. See below. |
+| `autoLog` | Boolean | `true` | When true, automatically console.log the output. See below. |
 
-### `Echo.options.output`
+#### `Echo.options.autoLog`
 
-The way Echo works means it never knows if the expression has finished evaluating and if it's time to print the output. Here are a couple examples to illustrate the problem:
+When autoLog is `true`, the output is automatically logged to the console. If
+you're in an environment with autocomplete (like Chrome console), this mode may
+cause Echo to be logged several times as you type.
+
+This is because the way Echo's auto-logging works means it never knows if the
+expression has finished evaluating and if it's time to print the output. Here
+are a couple examples to illustrate the problem:
 
 - Consider the expression `Echo.foo.bar`. The subexpression `Echo.foo` is completely evaluated before it looks for `.bar`. While this subexpression is evaluating, all Echo knows is that it's handled one get for `.foo`, it can never tell if that getter is the last one in the chain or if there are more to come.
 - Consider the expression `Echo(Echo.foo)`. We don't want to print the inner Echo on its own line, we want them both to appear in one line.
 
-Echo provides 3 strategies to work around this, which you can switch between by configuring `Echo.options.output`:
-
-- `"log"` (default) - Echo uses setTimeout to wait 1 tick. Then, it prints the longest token list found to the console
-- `"toString"` - As many stringifier functions as possible cast to the output (this is always true, but logging is disabled in this mode).
-  - `Echo.toString`
-  - `Echo[Symbol.toPrimitive]`
-  - `Echo[Symbol.for('nodejs.util.inspect.custom')]`
-- `"promise"` - Echo becomes a promise that resolves to an object with the following interface:
-
-  ```
-  {
-    tokens: (string|{value: string, type: string})[] -- Strings which may or may not contain token type information, which is what Echo uses to do syntax highlighting
-    plaintext: string -- the tokens strung together without any syntax highlighting
-    formatted: string[] -- the tokens with syntax highlighting, formatted as arguments to the console
-  }
-  ```
+Echo circumvents this by using setTimeout to wait 1 tick. Then, it prints the
+longest token list found to the console. If a browser console's autocomplete
+tries to inspect Echo as you type, it triggers this process.

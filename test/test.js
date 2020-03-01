@@ -8,7 +8,61 @@ beforeEach(() => {
   Echo.options.stringDelimiter = '\'';
   Echo.options.colorMode = 'off';
   Echo.options.theme = 'chrome';
-  Echo.options.output = 'promise';
+  Echo.options.autoLog = false;
+});
+
+describe('Echo public interface tests', () => {
+  it('Echo.render returns correct shape', async () => {
+    const resValue = Echo.foo.bar(123).render();
+    expect(resValue).to.deep.equal({
+      tokens: [
+        { value: 'Echo', type: 'variable' },
+        { value: '.', type: 'operator' },
+        { value: 'foo', type: 'property' },
+        { value: '.', type: 'operator' },
+        { value: 'bar', type: 'property' },
+        { value: '(', type: 'operator' },
+        { value: '123', type: 'number' },
+        { value: ')', type: 'operator' }
+      ],
+      plaintext: 'Echo.foo.bar(123)',
+      formatted: [ 'Echo.foo.bar(123)' ]
+    });
+  });
+
+  it('Echo.then resolves to correct shape', async () => {
+    const resValue = await Echo.foo.bar(123);
+    expect(resValue).to.deep.equal({
+      tokens: [
+        { value: 'Echo', type: 'variable' },
+        { value: '.', type: 'operator' },
+        { value: 'foo', type: 'property' },
+        { value: '.', type: 'operator' },
+        { value: 'bar', type: 'property' },
+        { value: '(', type: 'operator' },
+        { value: '123', type: 'number' },
+        { value: ')', type: 'operator' }
+      ],
+      plaintext: 'Echo.foo.bar(123)',
+      formatted: [ 'Echo.foo.bar(123)' ]
+    });
+  });
+
+  it('Echo.options has correct shape', () => {
+    expect(Echo.options).to.deep.equal({
+      colorMode: 'off',
+      bracketNotationOptional: true,
+      constructorParensOptional: true,
+      parensOptional: true,
+      stringDelimiter: '\'',
+      theme: 'chrome',
+      autoLog: false
+    });
+  });
+
+  it('Echo.toString works', () => {
+    expect(Echo.foo(1).bar.toString()).to.equal(Echo.foo(1).bar.toString());
+  });
 });
 
 describe('renderTokens tests', () => {
@@ -302,6 +356,20 @@ describe('renderTokens tests', () => {
         { value: ')', type: 'operator' }
       ]);
     });
+
+    it('Template tag detection works', async () => {
+      const { tokens } = await Echo.foo`bar${1}ba\nz`.qux;
+      expect(tokens).to.deep.equal([
+        { value: 'Echo', type: 'variable' },
+        { value: '.', type: 'operator' },
+        { value: 'foo', type: 'property' },
+        { value: '`bar${', type: 'string' },
+        { value: '1', type: 'number' },
+        { value: '}ba\\nz`', type: 'string' },
+        { value: '.', type: 'operator' },
+        { value: 'qux', type: 'property' }
+      ]);
+    });
   });
 
   describe('Arguments tests', () => {
@@ -411,6 +479,18 @@ describe('renderTokens tests', () => {
         { value: ')', type: 'operator' }
       ]);
     });
+
+    it('Argument with a newline is rendered as template string', async () => {
+      const { tokens } = await new Echo('foo\nbar');
+      expect(tokens).to.deep.equal([
+        { value: 'new', type: 'keyword' },
+        { value: ' ', type: 'default' },
+        { value: 'Echo', type: 'variable' },
+        { value: '(', type: 'operator' },
+        { value: '`foo\nbar`', type: 'string' },
+        { value: ')', type: 'operator' }
+      ]);
+    });
   });
 
   describe('Parens ambiguities and nonambiguities tests', () => {
@@ -431,5 +511,18 @@ describe('renderTokens tests', () => {
     it('new new Echo', async () => expect((await new new Echo).plaintext).to.equal('new new Echo'));
     it('new new Echo(1)', async () => expect((await new new Echo(1)).plaintext).to.equal('new new Echo(1)'));
     it('Echo()()()', async () => expect((await Echo()()()).plaintext).to.equal('Echo()()()'));
+  });
+});
+
+describe('prettyPrint tests', () => {
+  it('Browser mode escapes %\'s', async () => {
+    Echo.options.colorMode = 'browser';
+    const { formatted: [ formatString ] } = await Echo('%s', '%c', '%d');
+    expect(formatString).to.include('%%s').and.include('%%c').and.include('%%d');
+  });
+  it('ANSI output ends with reset character', async () => {
+    Echo.options.colorMode = 'ansi';
+    const { formatted: [ formatString ] } = await Echo.foo();
+    expect(formatString.endsWith('\x1b[0m')).to.be.true;
   });
 });

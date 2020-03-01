@@ -24,7 +24,7 @@
       parensOptional: true,
       stringDelimiter: "'",
       theme: (typeof navigator !== 'undefined' && navigator.userAgent.includes('Firefox')) ? 'firefox' : 'chrome',
-      output: 'log',
+      autoLog: true,
   };
 
   /*! *****************************************************************************
@@ -378,7 +378,7 @@
 
   var ignoreIdents = [
       // public interface
-      'options', 'then', 'toString',
+      'render', 'options', 'then', 'toString',
       // internals
       '_self',
       // avoid breaking the console, or JavaScript altogether
@@ -420,13 +420,8 @@
       }
       Object.defineProperty(Echo, 'then', {
           get: function () {
-              if (options.output === 'promise') {
-                  var p = Promise.resolve(Echo.render());
-                  return Promise.prototype.then.bind(p);
-              }
-              else {
-                  return handler.get(Echo, 'then', null);
-              }
+              var p = Promise.resolve(Echo.render());
+              return Promise.prototype.then.bind(p);
           }
       });
       Echo.options = options;
@@ -450,24 +445,27 @@
   }
 
   var echoCount = 0;
-  var tokens = [];
+  var maxTokensLength = 0;
+  var formatted = [];
   attachToGlobal('Echo', function () {
       var Echo = generateEcho();
-      if (options.output === 'log') {
+      if (options.autoLog) {
           echoCount++;
           setTimeout(function () {
               // deal with race between the whole expression and each of its sub-
               // expressions, as well as arguments that are other Echoes: just wait a
               // tick 'till they've all evaluated and use whichever stringified 
               // version is longest
-              var t = renderTokens(Echo.stack);
-              if (t.length > tokens.length)
-                  tokens = t;
+              var prettyPrinted = Echo.render();
+              if (prettyPrinted.tokens.length > maxTokensLength) {
+                  maxTokensLength = prettyPrinted.tokens.length;
+                  formatted = prettyPrinted.formatted;
+              }
               echoCount--;
-              if (echoCount === 0 && tokens.length > 0) {
-                  var formatted = prettyPrint(tokens).formatted;
+              if (echoCount === 0 && maxTokensLength > 0) {
                   console.log.apply(console, formatted);
-                  tokens = [];
+                  maxTokensLength = 0;
+                  formatted = [];
               }
           }, 0);
       }

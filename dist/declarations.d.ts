@@ -18,7 +18,7 @@ interface EchoToken {
   type: TokenType;
 };
 
-interface EchoPromiseResult {
+interface EchoRenderResult {
   tokens: EchoToken[];
   plaintext: string;
   formatted: string[];
@@ -34,11 +34,15 @@ interface EchoOptions {
   output: 'log' | 'toString' | 'promise';
 };
 
-interface Echo extends Partial<PromiseLike<EchoPromiseResult>> {
-  (): Echo;
-  new(): Echo;
+interface Echo extends PromiseLike<EchoRenderResult> {
+  // Actual public interface
+  render: () => EchoRenderResult;
   toString: () => string;
   options: EchoOptions;
+
+  // Echo-y behavior
+  (): Echo;
+  new(): Echo;
   [key: string]: Echo;
 };
 
