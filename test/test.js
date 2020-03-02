@@ -69,7 +69,7 @@ describe('Echo public interface tests', () => {
   });
 });
 
-describe('renderTokens tests', () => {
+describe('tokenize tests', () => {
   describe('Get tests', () => {
     describe('parensOptional=true', () => {
       it('Special identifiers and numbers are square-bracketed and tokenized correctly', async () => {
