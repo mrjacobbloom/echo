@@ -75,17 +75,17 @@
       return args[0] && Array.isArray(args[0]) && Array.isArray(args[0].raw);
   }
   /**
-   * Reconstruct template literal from arguments to template tag
+   * Tokenize a template literal from arguments to template tag
    * @param {any[]} args Arguments list of the apply
-   * @returns {string} Reconstructed literal, including backticks
+   * @returns {Token[]} Reconstructed literal, including backticks
    */
-  function renderTemplateLiteralFromTagArgs(_a) {
+  function tokenizeTemplateLiteralFromTagArgs(_a) {
       var raw = _a[0].raw, args = _a.slice(1);
       var prevToken = { value: "`" + raw[0], type: 'string' };
       var tokens = [prevToken];
       for (var i = 0; i < args.length; i++) {
           prevToken.value += '${';
-          tokens.push.apply(tokens, handleArgs([args[i]])); // todo: break out handleArg(?) into its own function?
+          tokens.push.apply(tokens, tokenizeValue(args[i]));
           prevToken = { value: "}" + raw[i + 1], type: 'string' };
           tokens.push(prevToken);
       }
@@ -117,65 +117,73 @@
       }
   };
   /**
+   * Return the best-guess tokenized form of a JS value
+   * @param value Value to tokenize
+   * @returns {Token[]}
+   */
+  function tokenizeValue(value) {
+      if (value && value._self) {
+          return tokenizeEcho(value);
+      }
+      var out = [];
+      switch (typeof value) {
+          case 'string': {
+              out.push({ value: escapeString(value), type: 'string' });
+              break;
+          }
+          case 'function': {
+              if (value.name) {
+                  out.push({ value: value.name, type: 'variable' });
+              }
+              else {
+                  out.push({ value: String(value), type: 'default' });
+              }
+              break;
+          }
+          case 'object': {
+              if (value) {
+                  var name = value.__proto__.name || value.constructor.name;
+                  if (Array.isArray(value)) {
+                      out.push.apply(out, [T.operator(templateObject_1 || (templateObject_1 = __makeTemplateObject(["["], ["["])))].concat(tokenizeArgumentsList(value), [T.operator(templateObject_2 || (templateObject_2 = __makeTemplateObject(["]"], ["]"])))]));
+                  }
+                  else if (name && name != 'Object') {
+                      // in my experience this is almost always wrong, but closer than [object Object]
+                      out.push({ value: name + " {}", type: 'object' });
+                  }
+                  else {
+                      out.push({ value: '{}', type: 'object' });
+                  }
+              }
+              else {
+                  out.push({ value: 'null', type: 'null' });
+              }
+              break;
+          }
+          case 'bigint': {
+              out.push({ value: String(value) + 'n', type: 'number' });
+              break;
+          }
+          default: {
+              if (specialIdentTypes[value]) {
+                  out.push({ value: String(value), type: specialIdentTypes[value] });
+              }
+              else {
+                  out.push({ value: String(value), type: typeof value });
+              }
+              break;
+          }
+      }
+      return out;
+  }
+  /**
    * Tokenize an arguments list (i.e. Echo was applied or constructed)
    * @param args arguments list
    * @returns {Token[]}
    */
-  function handleArgs(args) {
+  function tokenizeArgumentsList(args) {
       var out = [];
       args.forEach(function (arg, idx) {
-          if (arg && arg._self) {
-              out.push.apply(out, renderTokens(arg._self.stack));
-          }
-          else {
-              switch (typeof arg) {
-                  case 'string': {
-                      out.push({ value: escapeString(arg), type: 'string' });
-                      break;
-                  }
-                  case 'function': {
-                      if (arg.name) {
-                          out.push({ value: arg.name, type: 'variable' });
-                      }
-                      else {
-                          out.push({ value: String(arg), type: 'default' });
-                      }
-                      break;
-                  }
-                  case 'object': {
-                      if (arg) {
-                          var name = arg.__proto__.name || arg.constructor.name;
-                          if (Array.isArray(arg)) {
-                              out.push.apply(out, [T.operator(templateObject_1 || (templateObject_1 = __makeTemplateObject(["["], ["["])))].concat(handleArgs(arg), [T.operator(templateObject_2 || (templateObject_2 = __makeTemplateObject(["]"], ["]"])))]));
-                          }
-                          else if (name && name != 'Object') {
-                              // in my experience this is almost always wrong, but closer than [object Object]
-                              out.push({ value: name + " {}", type: 'object' });
-                          }
-                          else {
-                              out.push({ value: '{}', type: 'object' });
-                          }
-                      }
-                      else {
-                          out.push({ value: 'null', type: 'null' });
-                      }
-                      break;
-                  }
-                  case 'bigint': {
-                      out.push({ value: String(arg) + 'n', type: 'number' });
-                      break;
-                  }
-                  default: {
-                      if (specialIdentTypes[arg]) {
-                          out.push({ value: String(arg), type: specialIdentTypes[arg] });
-                      }
-                      else {
-                          out.push({ value: String(arg), type: typeof arg });
-                      }
-                      break;
-                  }
-              }
-          }
+          out.push.apply(out, tokenizeValue(arg));
           if (idx < args.length - 1)
               out.push(T.operator(templateObject_3 || (templateObject_3 = __makeTemplateObject([","], [","]))), T.space());
       });
@@ -185,12 +193,12 @@
   // This is NOT spec-compliant: https://stackoverflow.com/a/9337047
   var identRegEx = /^[_$a-zA-Z][_$a-zA-Z0-9]*$/;
   /**
-   * Render a given Echo's stack into an array of Tokens (strings which may also
-   * carry type information).
-   * @param {TrappedOperation[]} stack Echo's operation stack.
+   * Render a given Echo into an array of Tokens (strings bundled with type info).
+   * @param {Echo} Echo Echo to tokenize
    * @returns {Token[]} Token list.
    */
-  function renderTokens(stack) {
+  function tokenizeEcho(Echo) {
+      var stack = Echo._self.stack;
       var out = [];
       for (var i = 0; i < stack.length; i++) {
           var prevType = i > 0 ? stack[i - 1].type : '';
@@ -234,7 +242,7 @@
                   // handle arguments list and whether parens are necessary at all
                   var args = [];
                   if (!options.constructorParensOptional || item.args.length) {
-                      args = [T.operator(templateObject_9 || (templateObject_9 = __makeTemplateObject(["("], ["("])))].concat(handleArgs(item.args), [T.operator(templateObject_10 || (templateObject_10 = __makeTemplateObject([")"], [")"])))]);
+                      args = [T.operator(templateObject_9 || (templateObject_9 = __makeTemplateObject(["("], ["("])))].concat(tokenizeArgumentsList(item.args), [T.operator(templateObject_10 || (templateObject_10 = __makeTemplateObject([")"], [")"])))]);
                   }
                   // decide whether to wrap the constructor in parentheses for clarity
                   if (options.parensOptional && prevType !== 'apply') {
@@ -247,14 +255,14 @@
               }
               case 'apply': {
                   if (calledAsTemplateTag(item.args)) {
-                      out = out.concat(renderTemplateLiteralFromTagArgs(item.args));
+                      out = out.concat(tokenizeTemplateLiteralFromTagArgs(item.args));
                   }
                   else {
                       if (!options.parensOptional || prevType === 'construct') {
-                          out = [T.operator(templateObject_15 || (templateObject_15 = __makeTemplateObject(["("], ["("])))].concat(out, [T.operator(templateObject_16 || (templateObject_16 = __makeTemplateObject([")"], [")"]))), T.operator(templateObject_17 || (templateObject_17 = __makeTemplateObject(["("], ["("])))], handleArgs(item.args), [T.operator(templateObject_18 || (templateObject_18 = __makeTemplateObject([")"], [")"])))]);
+                          out = [T.operator(templateObject_15 || (templateObject_15 = __makeTemplateObject(["("], ["("])))].concat(out, [T.operator(templateObject_16 || (templateObject_16 = __makeTemplateObject([")"], [")"]))), T.operator(templateObject_17 || (templateObject_17 = __makeTemplateObject(["("], ["("])))], tokenizeArgumentsList(item.args), [T.operator(templateObject_18 || (templateObject_18 = __makeTemplateObject([")"], [")"])))]);
                       }
                       else {
-                          out = out.concat([T.operator(templateObject_19 || (templateObject_19 = __makeTemplateObject(["("], ["("])))], handleArgs(item.args), [T.operator(templateObject_20 || (templateObject_20 = __makeTemplateObject([")"], [")"])))]);
+                          out = out.concat([T.operator(templateObject_19 || (templateObject_19 = __makeTemplateObject(["("], ["("])))], tokenizeArgumentsList(item.args), [T.operator(templateObject_20 || (templateObject_20 = __makeTemplateObject([")"], [")"])))]);
                       }
                   }
                   break;
@@ -421,7 +429,7 @@
       Echo.stack = [{ type: 'get', identifier: 'Echo' }];
       Echo._self = Echo;
       Echo.render = function () {
-          var t = renderTokens(Echo.stack);
+          var t = tokenizeEcho(Echo);
           return prettyPrint(t);
       };
       //eslint-disable-next-line @typescript-eslint/explicit-function-return-type

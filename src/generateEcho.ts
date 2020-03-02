@@ -1,5 +1,5 @@
 import options from './options';
-import renderTokens from './renderTokens';
+import { tokenizeEcho } from './tokenize';
 import prettyPrint from './prettyPrint';
 
 const ignoreIdents: any[] = [
@@ -40,7 +40,7 @@ export default function generateEcho(): Echo {
   Echo.stack = [{type: 'get', identifier: 'Echo'}];
   Echo._self = Echo as Echo;
   Echo.render = (): PrettyPrintOutput => {
-    const t = renderTokens(Echo.stack);
+    const t = tokenizeEcho(Echo as Echo);
     return prettyPrint(t);
   }
   //eslint-disable-next-line @typescript-eslint/explicit-function-return-type

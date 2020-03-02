@@ -30,16 +30,16 @@ function calledAsTemplateTag(args: any[]): boolean {
 }
 
 /**
- * Reconstruct template literal from arguments to template tag
+ * Tokenize a template literal from arguments to template tag
  * @param {any[]} args Arguments list of the apply
- * @returns {string} Reconstructed literal, including backticks
+ * @returns {Token[]} Reconstructed literal, including backticks
  */
-function renderTemplateLiteralFromTagArgs([{raw}, ...args]: [TemplateStringsArray, ...any[]]): Token[] {
+function tokenizeTemplateLiteralFromTagArgs([{raw}, ...args]: [TemplateStringsArray, ...any[]]): Token[] {
   let prevToken: Token = { value: `\`${raw[0]}`, type: 'string' };
   const tokens: Token[] = [prevToken];
   for(let i = 0; i < args.length; i++) {
     prevToken.value += '${';
-    tokens.push(...handleArgs([args[i]])); // todo: break out handleArg(?) into its own function?
+    tokens.push(...tokenizeValue(args[i]));
     prevToken = { value: `}${raw[i + 1]}`, type: 'string' };
     tokens.push(prevToken);
   }
@@ -69,59 +69,69 @@ const T = {
 }
 
 /**
+ * Return the best-guess tokenized form of a JS value
+ * @param value Value to tokenize
+ * @returns {Token[]}
+ */
+function tokenizeValue(value: any): Token[] {
+  if(value && value._self) {
+    return tokenizeEcho(value);
+  }
+  const out: Token[] = [];
+  switch(typeof value) {
+    case 'string': {
+      out.push({value: escapeString(value), type: 'string'});
+      break;
+    }
+    case 'function': {
+      if(value.name) {
+        out.push({value: value.name, type: 'variable'});
+      } else {
+        out.push({value: String(value), type: 'default'});
+      }
+      break;
+    }
+    case 'object': {
+      if(value) {
+        const name = value.__proto__.name || value.constructor.name;
+        if (Array.isArray(value)) {
+          out.push(T.operator`[`, ...tokenizeArgumentsList(value), T.operator`]`)
+        } else if(name && name != 'Object') {
+          // in my experience this is almost always wrong, but closer than [object Object]
+          out.push({value: `${name} {}`, type: 'object'});
+        } else {
+          out.push({value: '{}', type: 'object'});
+        }
+      } else {
+        out.push({value: 'null', type: 'null'});
+      }
+      break;
+    }
+    case 'bigint': {
+      out.push({value: String(value) + 'n', type: 'number'});
+      break;
+    }
+    default: {
+      if(specialIdentTypes[value]) {
+        out.push({value: String(value), type: specialIdentTypes[value]});
+      } else {
+        out.push({value: String(value), type: typeof value as TokenType});
+      }
+      break;
+    }
+  }
+  return out;
+}
+
+/**
  * Tokenize an arguments list (i.e. Echo was applied or constructed)
  * @param args arguments list
  * @returns {Token[]}
  */
-function handleArgs(args: any[]): Token[] {
+function tokenizeArgumentsList(args: any[]): Token[] {
   const out: Token[] = [];
   args.forEach((arg, idx) => {
-    if(arg && arg._self) {
-      out.push(...renderTokens(arg._self.stack));
-    } else {
-      switch(typeof arg) {
-        case 'string': {
-          out.push({value: escapeString(arg), type: 'string'});
-          break;
-        }
-        case 'function': {
-          if(arg.name) {
-            out.push({value: arg.name, type: 'variable'});
-          } else {
-            out.push({value: String(arg), type: 'default'});
-          }
-          break;
-        }
-        case 'object': {
-          if(arg) {
-            const name = arg.__proto__.name || arg.constructor.name;
-            if (Array.isArray(arg)) {
-              out.push(T.operator`[`, ...handleArgs(arg), T.operator`]`)
-            } else if(name && name != 'Object') {
-              // in my experience this is almost always wrong, but closer than [object Object]
-              out.push({value: `${name} {}`, type: 'object'});
-            } else {
-              out.push({value: '{}', type: 'object'});
-            }
-          } else {
-            out.push({value: 'null', type: 'null'});
-          }
-          break;
-        }
-        case 'bigint': {
-          out.push({value: String(arg) + 'n', type: 'number'});
-          break;
-        }
-        default: {
-          if(specialIdentTypes[arg]) {
-            out.push({value: String(arg), type: specialIdentTypes[arg]});
-          } else {
-            out.push({value: String(arg), type: typeof arg as TokenType});
-          }
-          break;
-        }
-      }
-    }
+    out.push(...tokenizeValue(arg));
     if(idx < args.length - 1) out.push(T.operator`,`, T.space());
   });
   return out;
@@ -132,12 +142,12 @@ function handleArgs(args: any[]): Token[] {
 const identRegEx = /^[_$a-zA-Z][_$a-zA-Z0-9]*$/;
 
 /**
- * Render a given Echo's stack into an array of Tokens (strings which may also
- * carry type information).
- * @param {TrappedOperation[]} stack Echo's operation stack.
+ * Render a given Echo into an array of Tokens (strings bundled with type info).
+ * @param {Echo} Echo Echo to tokenize
  * @returns {Token[]} Token list.
  */
-export default function renderTokens(stack: TrappedOperation[]): Token[] {
+export function tokenizeEcho(Echo: Echo): Token[] {
+  const stack = Echo._self.stack;
   let out: Token[] = [];
   for(let i = 0; i < stack.length; i++) {
     const prevType = i > 0 ? stack[i - 1].type : '';
@@ -178,7 +188,7 @@ export default function renderTokens(stack: TrappedOperation[]): Token[] {
         // handle arguments list and whether parens are necessary at all
         let args: Token[] = [];
         if(!options.constructorParensOptional || item.args.length) {
-          args = [T.operator`(`, ...handleArgs(item.args), T.operator`)`]
+          args = [T.operator`(`, ...tokenizeArgumentsList(item.args), T.operator`)`]
         }
         // decide whether to wrap the constructor in parentheses for clarity
         if(options.parensOptional && prevType !== 'apply') {
@@ -190,12 +200,12 @@ export default function renderTokens(stack: TrappedOperation[]): Token[] {
       }
       case 'apply': {
         if (calledAsTemplateTag(item.args)) {
-          out = [...out, ...renderTemplateLiteralFromTagArgs(item.args as any)]
+          out = [...out, ...tokenizeTemplateLiteralFromTagArgs(item.args as any)]
         } else {
           if (!options.parensOptional || prevType === 'construct') {
-            out = [T.operator`(`, ...out, T.operator`)`, T.operator`(`, ...handleArgs(item.args), T.operator`)`];
+            out = [T.operator`(`, ...out, T.operator`)`, T.operator`(`, ...tokenizeArgumentsList(item.args), T.operator`)`];
           } else {
-            out = [...out, T.operator`(`, ...handleArgs(item.args), T.operator`)`];
+            out = [...out, T.operator`(`, ...tokenizeArgumentsList(item.args), T.operator`)`];
           }
         }
         break;
