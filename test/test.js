@@ -549,16 +549,34 @@ describe('autoLog tests', () => {
   })
   it('does not autoLog if autoLog=false', async () => {
     Echo.options.autoLog = false;
+    await setTimeoutAsync(10);
     stub(console, 'log');
     Echo.foo;
     await setTimeoutAsync(10);
     expect(console.log.called).to.be.false;
   });
+  it('Using Echo without render function triggers an autoLog', async () => {
+    Echo.options.autoLog = true;
+    await setTimeoutAsync(10);
+    stub(console, 'log');
+    Echo.foo;
+    await setTimeoutAsync(10);
+    expect(console.log.callCount).to.equal(1);
+  });
+  it('Using Echo with render function does not trigger an autoLog', async () => {
+    Echo.options.autoLog = true;
+    await setTimeoutAsync(10);
+    stub(console, 'log');
+    Echo.foo.render();
+    await setTimeoutAsync(10);
+    expect(console.log.callCount).to.equal(0);
+  });
   it('Addidional Echoes as arguments do not cause extra logging', async () => {
     Echo.options.autoLog = true;
+    await setTimeoutAsync(10);
     stub(console, 'log');
     Echo.foo(Echo.bar);
     await setTimeoutAsync(10);
-    expect(console.log.calledOnce).to.be.true;
+    expect(console.log.callCount).to.equal(1);
   });
 });

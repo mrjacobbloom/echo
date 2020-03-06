@@ -1,6 +1,7 @@
 import options from './options';
+import { ECHO_SELF, ECHO_INTERNALS } from './symbols';
 
-const specialIdentTypes = {
+const specialIdentTypes = new Map<string, TokenType>(Object.entries({
   'undefined': 'undefined',
   'null': 'null',
   'true': 'boolean',
@@ -8,7 +9,7 @@ const specialIdentTypes = {
   'Infinity': 'keyword',
   '-Infinity': 'keyword',
   'NaN': 'keyword',
-};
+}));
 /**
  * Wrap a string in the selected delimiter and escape that delimiter in the string.
  * @param {string} string String to escape
@@ -74,8 +75,8 @@ const T = {
  * @returns {Token[]}
  */
 function tokenizeValue(value: any): Token[] {
-  if(value && value._self) {
-    return tokenizeEcho(value);
+  if(value && value[ECHO_SELF]) {
+    return tokenizeEcho(value[ECHO_SELF]);
   }
   const out: Token[] = [];
   switch(typeof value) {
@@ -112,8 +113,8 @@ function tokenizeValue(value: any): Token[] {
       break;
     }
     default: {
-      if(specialIdentTypes[value]) {
-        out.push({value: String(value), type: specialIdentTypes[value]});
+      if(specialIdentTypes.has(String(value))) {
+        out.push({value: String(value), type: specialIdentTypes.get(String(value))});
       } else {
         out.push({value: String(value), type: typeof value as TokenType});
       }
@@ -147,7 +148,7 @@ const identRegEx = /^[_$a-zA-Z][_$a-zA-Z0-9]*$/;
  * @returns {Token[]} Token list.
  */
 export function tokenizeEcho(Echo: Echo): Token[] {
-  const stack = Echo._self.stack;
+  const stack = Echo[ECHO_INTERNALS].stack;
   let out: Token[] = [];
   for(let i = 0; i < stack.length; i++) {
     const prevType = i > 0 ? stack[i - 1].type : '';
@@ -159,9 +160,9 @@ export function tokenizeEcho(Echo: Echo): Token[] {
           out = [{value: item.identifier, type: 'variable'}];
         } else {
           let identToken: Token;
-          if(specialIdentTypes[item.identifier]) {
+          if(specialIdentTypes.has(item.identifier)) {
             // it's a special identifier (like a keyword) with a hard-coded type
-            identToken = {value: item.identifier, type: specialIdentTypes[item.identifier]};
+            identToken = {value: item.identifier, type: specialIdentTypes.get(item.identifier)};
           } else if(!Number.isNaN(Number(item.identifier))) {
             identToken = {value: item.identifier, type: 'number'};
           } else if(!options.bracketNotationOptional || !identRegEx.test(item.identifier)) {

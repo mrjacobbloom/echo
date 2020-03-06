@@ -11,18 +11,34 @@ type Options = {
   autoLog: boolean;
 };
 
+declare const ECHO_INTERNALS: unique symbol;
+type T_ECHO_INTERNALS = typeof ECHO_INTERNALS;
+declare const ECHO_SELF: unique symbol;
+type T_ECHO_SELF = typeof ECHO_SELF;
+
+// Don't worry about actual Echo-ing behavior, this is all for internal use which doesnt depend on that
+type EchoProxy = {
+  [ECHO_SELF]: Echo;
+  options: Options;
+  render: (disableAutoLog?: boolean) => PrettyPrintOutput;
+  then: typeof Promise.prototype.then;
+};
+
 type Echo = {
   // must be both callable and constructible for the Proxy to work
   (): void;
   new(): Echo;
 
   options: Options;
-  _self: Echo;
-  stack: TrappedOperation[];
-  proxy: Echo; // TS has no concept of Proxy<T> since its typing are same as T
-  render: () => PrettyPrintOutput;
+
+  [ECHO_INTERNALS]: {
+    stack: TrappedOperation[];
+    proxy: EchoProxy;
+    autoLogDisabled: { value: boolean };
+  };
+  render: (disableAutoLog?: boolean) => PrettyPrintOutput;
   then: typeof Promise.prototype.then;
-}
+};
 
 /**
  * An operation trapped by the Echo's proxy, which will later be turned into a

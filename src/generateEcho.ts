@@ -1,46 +1,49 @@
 import options from './options';
 import { tokenizeEcho } from './tokenize';
 import prettyPrint from './prettyPrint';
+import { ECHO_INTERNALS, ECHO_SELF } from './symbols';
 
 const ignoreIdents: any[] = [
   // public interface
   'render', 'options', 'then', 'toString',
 
-  // internals
-  '_self',
-
   // avoid breaking the console, or JavaScript altogether
   'valueOf', 'constructor', 'prototype', '__proto__'
 ];
 
-const symbolInspect = typeof process !== undefined ? Symbol.for('nodejs.util.inspect.custom') : null;
+const symbolInspect = typeof process !== 'undefined' ? Symbol.for('nodejs.util.inspect.custom') : null;
 
-const handler: ProxyHandler<any> = {
+const handler: ProxyHandler<Echo> = {
   get(target, identifier) {
+    if (identifier === ECHO_SELF) return target;
     if(typeof identifier === 'symbol'
     || ignoreIdents.includes(identifier)) {
-      if(identifier == 'options') target.stack = [];
+      if(identifier == 'options') target[ECHO_INTERNALS].autoLogDisabled.value = true;
       return target[identifier];
     }
-    target.stack.push({type: 'get', identifier: String(identifier)});
-    return target.proxy;
+    target[ECHO_INTERNALS].stack.push({type: 'get', identifier: String(identifier)});
+    return target[ECHO_INTERNALS].proxy;
   },
   construct(target, args) {
-    target.stack.push({type: 'construct', args});
-    return target.proxy;
+    target[ECHO_INTERNALS].stack.push({type: 'construct', args});
+    return target[ECHO_INTERNALS].proxy;
   },
   apply(target, that, args) {
-    target.stack.push({type: 'apply', args});
-    return target.proxy;
+    target[ECHO_INTERNALS].stack.push({type: 'apply', args});
+    return target[ECHO_INTERNALS].proxy;
   },
 };
 
-export default function generateEcho(): Echo {
-  const Echo: Partial<Echo> = function Echo() {}; // eslint-disable-line
-  Echo.stack = [{type: 'get', identifier: 'Echo'}];
-  Echo._self = Echo as Echo;
-  Echo.render = (): PrettyPrintOutput => {
-    const t = tokenizeEcho(Echo as Echo);
+export default function generateEcho(autoLogDisabled: { value: boolean }): Echo {
+  const Echo = function Echo() {} as Echo; // eslint-disable-line
+  Echo[ECHO_INTERNALS] = {
+    autoLogDisabled,
+    stack: [{type: 'get', identifier: 'Echo'}],
+    proxy: new Proxy(Echo, handler) as unknown as EchoProxy,
+  };
+  Echo.render = (disableAutoLog = true): PrettyPrintOutput => {
+    if (disableAutoLog) autoLogDisabled.value = true;
+    const t = tokenizeEcho(Echo);
     return prettyPrint(t);
   }
   //eslint-disable-next-line @typescript-eslint/explicit-function-return-type
@@ -49,10 +52,13 @@ export default function generateEcho(): Echo {
   Echo.toString = (): string => Echo.render().plaintext;
   Echo[Symbol.toPrimitive] = (): string => Echo.render().plaintext;
   if(symbolInspect) {
-    Echo[symbolInspect] = (): string => Echo.render().formatted[0];
+    Echo[symbolInspect] = (): string => Echo.render(false).formatted[0];
   }
 
   Echo.options = options;
-  Echo.proxy = new Proxy(Echo, handler);
+
+  delete (Echo as any).__proto__;
+  delete (Echo as any).name;
+  delete (Echo as any).length;
   return Echo as Echo;
 }

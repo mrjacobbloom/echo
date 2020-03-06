@@ -47,7 +47,10 @@
       return cooked;
   }
 
-  var specialIdentTypes = {
+  var ECHO_INTERNALS = Symbol('ECHO_INTERNALS');
+  var ECHO_SELF = Symbol('ECHO_SELF');
+
+  var specialIdentTypes = new Map(Object.entries({
       'undefined': 'undefined',
       'null': 'null',
       'true': 'boolean',
@@ -55,7 +58,7 @@
       'Infinity': 'keyword',
       '-Infinity': 'keyword',
       'NaN': 'keyword',
-  };
+  }));
   /**
    * Wrap a string in the selected delimiter and escape that delimiter in the string.
    * @param {string} string String to escape
@@ -122,8 +125,8 @@
    * @returns {Token[]}
    */
   function tokenizeValue(value) {
-      if (value && value._self) {
-          return tokenizeEcho(value);
+      if (value && value[ECHO_SELF]) {
+          return tokenizeEcho(value[ECHO_SELF]);
       }
       var out = [];
       switch (typeof value) {
@@ -164,8 +167,8 @@
               break;
           }
           default: {
-              if (specialIdentTypes[value]) {
-                  out.push({ value: String(value), type: specialIdentTypes[value] });
+              if (specialIdentTypes.has(String(value))) {
+                  out.push({ value: String(value), type: specialIdentTypes.get(String(value)) });
               }
               else {
                   out.push({ value: String(value), type: typeof value });
@@ -198,7 +201,7 @@
    * @returns {Token[]} Token list.
    */
   function tokenizeEcho(Echo) {
-      var stack = Echo._self.stack;
+      var stack = Echo[ECHO_INTERNALS].stack;
       var out = [];
       for (var i = 0; i < stack.length; i++) {
           var prevType = i > 0 ? stack[i - 1].type : '';
@@ -211,9 +214,9 @@
                   }
                   else {
                       var identToken = void 0;
-                      if (specialIdentTypes[item.identifier]) {
+                      if (specialIdentTypes.has(item.identifier)) {
                           // it's a special identifier (like a keyword) with a hard-coded type
-                          identToken = { value: item.identifier, type: specialIdentTypes[item.identifier] };
+                          identToken = { value: item.identifier, type: specialIdentTypes.get(item.identifier) };
                       }
                       else if (!Number.isNaN(Number(item.identifier))) {
                           identToken = { value: item.identifier, type: 'number' };
@@ -398,37 +401,43 @@
   var ignoreIdents = [
       // public interface
       'render', 'options', 'then', 'toString',
-      // internals
-      '_self',
       // avoid breaking the console, or JavaScript altogether
       'valueOf', 'constructor', 'prototype', '__proto__'
   ];
-  var symbolInspect = typeof process !== undefined ? Symbol.for('nodejs.util.inspect.custom') : null;
+  var symbolInspect = typeof process !== 'undefined' ? Symbol.for('nodejs.util.inspect.custom') : null;
   var handler = {
       get: function (target, identifier) {
+          if (identifier === ECHO_SELF)
+              return target;
           if (typeof identifier === 'symbol'
               || ignoreIdents.includes(identifier)) {
               if (identifier == 'options')
-                  target.stack = [];
+                  target[ECHO_INTERNALS].autoLogDisabled.value = true;
               return target[identifier];
           }
-          target.stack.push({ type: 'get', identifier: String(identifier) });
-          return target.proxy;
+          target[ECHO_INTERNALS].stack.push({ type: 'get', identifier: String(identifier) });
+          return target[ECHO_INTERNALS].proxy;
       },
       construct: function (target, args) {
-          target.stack.push({ type: 'construct', args: args });
-          return target.proxy;
+          target[ECHO_INTERNALS].stack.push({ type: 'construct', args: args });
+          return target[ECHO_INTERNALS].proxy;
       },
       apply: function (target, that, args) {
-          target.stack.push({ type: 'apply', args: args });
-          return target.proxy;
+          target[ECHO_INTERNALS].stack.push({ type: 'apply', args: args });
+          return target[ECHO_INTERNALS].proxy;
       },
   };
-  function generateEcho() {
+  function generateEcho(autoLogDisabled) {
       var Echo = function Echo() { }; // eslint-disable-line
-      Echo.stack = [{ type: 'get', identifier: 'Echo' }];
-      Echo._self = Echo;
-      Echo.render = function () {
+      Echo[ECHO_INTERNALS] = {
+          autoLogDisabled: autoLogDisabled,
+          stack: [{ type: 'get', identifier: 'Echo' }],
+          proxy: new Proxy(Echo, handler),
+      };
+      Echo.render = function (disableAutoLog) {
+          if (disableAutoLog === void 0) { disableAutoLog = true; }
+          if (disableAutoLog)
+              autoLogDisabled.value = true;
           var t = tokenizeEcho(Echo);
           return prettyPrint(t);
       };
@@ -443,10 +452,12 @@
       Echo.toString = function () { return Echo.render().plaintext; };
       Echo[Symbol.toPrimitive] = function () { return Echo.render().plaintext; };
       if (symbolInspect) {
-          Echo[symbolInspect] = function () { return Echo.render().formatted[0]; };
+          Echo[symbolInspect] = function () { return Echo.render(false).formatted[0]; };
       }
       Echo.options = options;
-      Echo.proxy = new Proxy(Echo, handler);
+      delete Echo.__proto__;
+      delete Echo.name;
+      delete Echo.length;
       return Echo;
   }
 
@@ -465,11 +476,14 @@
       Object.defineProperty(global_, property, { get: getter });
   }
 
+  var autoLogDisabled = { value: false };
   var echoCount = 0;
   var maxTokensLength = 0;
   var formatted = [];
   attachToGlobal('Echo', function () {
-      var Echo = generateEcho();
+      var Echo = generateEcho(autoLogDisabled);
+      if (echoCount === 0)
+          autoLogDisabled.value = false;
       if (options.autoLog) {
           echoCount++;
           setTimeout(function () {
@@ -477,20 +491,22 @@
               // expressions, as well as arguments that are other Echoes: just wait a
               // tick 'till they've all evaluated and use whichever stringified 
               // version is longest
-              var prettyPrinted = Echo.render();
+              var prettyPrinted = Echo.render(false);
               if (prettyPrinted.tokens.length > maxTokensLength) {
                   maxTokensLength = prettyPrinted.tokens.length;
                   formatted = prettyPrinted.formatted;
               }
               echoCount--;
-              if (echoCount === 0 && maxTokensLength > 0) {
-                  console.log.apply(console, formatted);
+              if (echoCount === 0) {
+                  if (maxTokensLength > 0 && !autoLogDisabled.value)
+                      console.log.apply(console, formatted);
+                  autoLogDisabled.value = false;
                   maxTokensLength = 0;
                   formatted = [];
               }
           }, 0);
       }
-      return Echo.proxy;
+      return Echo[ECHO_INTERNALS].proxy;
   });
 
 }());
