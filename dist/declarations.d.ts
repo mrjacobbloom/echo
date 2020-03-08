@@ -1,49 +1,51 @@
 // Type definitions for Echo
 
-type EchoTokenType =
-  | 'keyword'
-  | 'number'
-  | 'string'
-  | 'boolean'
-  | 'object'
-  | 'null'
-  | 'undefined'
-  | 'operator'
-  | 'variable'
-  | 'property'
-  | 'default';
+namespace EchoPromise {
+  interface Echo extends PromiseLike<EchoPromise.RenderResult> {
+    // Actual public interface
+    render: () => EchoPromise.RenderResult;
+    toString: () => string;
+    options: EchoPromise.Options;
+  
+    // Echo-y behavior
+    (): EchoPromise.Echo;
+    new(): EchoPromise.Echo;
+    [key: string]: EchoPromise.Echo;
+  };
 
-interface EchoToken {
-  value: string;
-  type: TokenType;
-};
+  type TokenType =
+    | 'keyword'
+    | 'number'
+    | 'string'
+    | 'boolean'
+    | 'object'
+    | 'null'
+    | 'undefined'
+    | 'operator'
+    | 'variable'
+    | 'property'
+    | 'default';
 
-interface EchoRenderResult {
-  tokens: EchoToken[];
-  plaintext: string;
-  formatted: string[];
+  interface Token {
+    value: string;
+    type: EchoPromise.TokenType;
+  };
+
+  interface RenderResult {
+    tokens: EchoPromise.Token[];
+    plaintext: string;
+    formatted: string[];
+  }
+
+  interface Options {
+    bracketNotationOptional: boolean;
+    constructorParensOptional: boolean;
+    parensOptional: boolean;
+    colorMode: 'browser' | 'ansi' | 'off';
+    stringDelimiter: '\'' | '"' | '`';
+    theme: 'firefox' | 'chrome';
+    output: 'log' | 'toString' | 'promise';
+  };
 }
 
-interface EchoOptions {
-  bracketNotationOptional: boolean;
-  constructorParensOptional: boolean;
-  parensOptional: boolean;
-  colorMode: 'browser' | 'ansi' | 'off';
-  stringDelimiter: '\'' | '"' | '`';
-  theme: 'firefox' | 'chrome';
-  output: 'log' | 'toString' | 'promise';
-};
-
-interface Echo extends PromiseLike<EchoRenderResult> {
-  // Actual public interface
-  render: () => EchoRenderResult;
-  toString: () => string;
-  options: EchoOptions;
-
-  // Echo-y behavior
-  (): Echo;
-  new(): Echo;
-  [key: string]: Echo;
-};
-
-declare var Echo: Echo;
+declare var Echo: EchoPromise.Echo;
