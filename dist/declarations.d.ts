@@ -44,7 +44,8 @@ namespace EchoPromise {
     colorMode: 'browser' | 'ansi' | 'off';
     stringDelimiter: '\'' | '"' | '`';
     theme: 'firefox' | 'chrome';
-    output: 'log' | 'toString' | 'promise';
+    autoLog: boolean;
+    autoLogMinLength: number;
   };
 }
 

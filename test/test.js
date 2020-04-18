@@ -13,6 +13,7 @@ beforeEach(() => {
   Echo.options.colorMode = 'off';
   Echo.options.theme = 'chrome';
   Echo.options.autoLog = false;
+  Echo.options.autoLogMinLength = 1;
 });
 
 describe('Echo public interface tests', () => {
@@ -60,7 +61,8 @@ describe('Echo public interface tests', () => {
       parensOptional: true,
       stringDelimiter: '\'',
       theme: 'chrome',
-      autoLog: false
+      autoLog: false,
+      autoLogMinLength: 1,
     });
   });
 
@@ -549,6 +551,15 @@ describe('autoLog tests', () => {
   })
   it('does not autoLog if autoLog=false', async () => {
     Echo.options.autoLog = false;
+    await setTimeoutAsync(10);
+    stub(console, 'log');
+    Echo.foo;
+    await setTimeoutAsync(10);
+    expect(console.log.called).to.be.false;
+  });
+  it('does not autoLog if number of tokens is < autoLogMinLength', async () => {
+    Echo.options.autoLog = true;
+    Echo.options.autoLogMinLength = 10;
     await setTimeoutAsync(10);
     stub(console, 'log');
     Echo.foo;

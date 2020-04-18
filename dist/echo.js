@@ -25,6 +25,7 @@
       stringDelimiter: "'",
       theme: (typeof navigator !== 'undefined' && navigator.userAgent.includes('Firefox')) ? 'firefox' : 'chrome',
       autoLog: true,
+      autoLogMinLength: 1,
   };
 
   /*! *****************************************************************************
@@ -498,7 +499,7 @@
               }
               echoCount--;
               if (echoCount === 0) {
-                  if (maxTokensLength > 0 && !autoLogDisabled.value)
+                  if (maxTokensLength >= options.autoLogMinLength && !autoLogDisabled.value)
                       console.log.apply(console, formatted);
                   autoLogDisabled.value = false;
                   maxTokensLength = 0;

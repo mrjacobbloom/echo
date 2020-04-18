@@ -9,6 +9,7 @@ type Options = {
   stringDelimiter: '\'' | '"' | '`';
   theme: 'firefox' | 'chrome';
   autoLog: boolean;
+  autoLogMinLength: number;
 };
 
 declare const ECHO_INTERNALS: unique symbol;

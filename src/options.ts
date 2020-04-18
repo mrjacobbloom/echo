@@ -16,4 +16,5 @@ export default {
   stringDelimiter: "'",
   theme: (typeof navigator !== 'undefined' && navigator.userAgent.includes('Firefox')) ? 'firefox' : 'chrome',
   autoLog: true,
+  autoLogMinLength: 1,
 } as Options;

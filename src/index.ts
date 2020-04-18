@@ -25,7 +25,7 @@ attachToGlobal('Echo', () => {
       }
       echoCount--;
       if(echoCount === 0) {
-        if (maxTokensLength > 0 && !autoLogDisabled.value) console.log(...formatted);
+        if (maxTokensLength >= options.autoLogMinLength && !autoLogDisabled.value) console.log(...formatted);
         autoLogDisabled.value = false;
         maxTokensLength = 0;
         formatted = [];

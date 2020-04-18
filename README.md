@@ -97,6 +97,7 @@ and options that affect its behavior in other ways.
 | `colorMode` | `"browser"`, `"ansi"`, `"off"` | [auto detected] | Enable or disable syntax highlighting and the mode used to set colors. |
 | `theme` | `"chrome"`, `"firefox"` | [auto detected] | Which DevTools' syntax highlighting theme to use. Defaults to Chrome unless you're using Firefox.
 | `autoLog` | Boolean | `true` | When true, automatically console.log the output. See below. |
+| `autoLogMinLength` | Number | `1` | The minumum number of tokens required to log to console. You can use this to avoid printing in some autocomplete situations. |
 
 #### `Echo.options.autoLog`
 
