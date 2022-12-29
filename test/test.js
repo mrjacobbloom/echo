@@ -75,7 +75,7 @@ describe('tokenize tests', () => {
   describe('Get tests', () => {
     describe('parensOptional=true', () => {
       it('Special identifiers and numbers are square-bracketed and tokenized correctly', async () => {
-        const { tokens } = await Echo[null][undefined][true][false][Infinity][-Infinity][NaN][25];
+        const { tokens } = await Echo[null][undefined][true][false][Infinity][-Infinity][NaN][25][Symbol('foo')][{}][Intl][''];
         expect(tokens).to.deep.equal([
           { value: 'Echo', type: 'variable' },
           { value: '[', type: 'operator' },
@@ -101,7 +101,22 @@ describe('tokenize tests', () => {
           { value: ']', type: 'operator' },
           { value: '[', type: 'operator' },
           { value: '25', type: 'number' },
-          { value: ']', type: 'operator' }
+          { value: ']', type: 'operator' },
+          { value: '[', type: 'operator',   },
+          { value: 'Symbol', type: 'variable',   },
+          { value: '(', type: 'operator',   },
+          { value: '\'foo\'', type: 'string',   },
+          { value: ')', type: 'operator',   },
+          { value: ']', type: 'operator',   },
+          { value: '[', type: 'operator',   },
+          { value: '{}', type: 'object',   },
+          { value: ']', type: 'operator',   },
+          { value: '[', type: 'operator',   },
+          { value: 'Intl {}', type: 'object',   },
+          { value: ']', type: 'operator',   },
+          { value: '[', type: 'operator',   },
+          { value: '\'\'', type: 'string',   },
+          { value: ']', type: 'operator',   }
         ]);
       });
   
@@ -582,11 +597,19 @@ describe('autoLog tests', () => {
     await setTimeoutAsync(10);
     expect(console.log.callCount).to.equal(0);
   });
-  it('Addidional Echoes as arguments do not cause extra logging', async () => {
+  it('Additional Echoes as arguments do not cause extra logging', async () => {
     Echo.options.autoLog = true;
     await setTimeoutAsync(10);
     stub(console, 'log');
     Echo.foo(Echo.bar);
+    await setTimeoutAsync(10);
+    expect(console.log.callCount).to.equal(1);
+  });
+  it('Additional Echoes in get brackets still log but and not cause extra logging', async () => {
+    Echo.options.autoLog = true;
+    await setTimeoutAsync(10);
+    stub(console, 'log');
+    Echo.foo[Echo.bar];
     await setTimeoutAsync(10);
     expect(console.log.callCount).to.equal(1);
   });

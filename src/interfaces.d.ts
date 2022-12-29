@@ -17,7 +17,7 @@ type T_ECHO_INTERNALS = typeof ECHO_INTERNALS;
 declare const ECHO_SELF: unique symbol;
 type T_ECHO_SELF = typeof ECHO_SELF;
 
-// Don't worry about actual Echo-ing behavior, this is all for internal use which doesnt depend on that
+// Don't worry about actual Echo-ing behavior, this is all for internal use which doesn't depend on that
 type EchoProxy = {
   [ECHO_SELF]: Echo;
   options: Options;
@@ -36,6 +36,7 @@ type Echo = {
     stack: TrappedOperation[];
     proxy: EchoProxy;
     autoLogDisabled: { value: boolean };
+    id: number;
   };
   render: (disableAutoLog?: boolean) => PrettyPrintOutput;
   then: typeof Promise.prototype.then;
@@ -50,7 +51,7 @@ type TrappedOperation = {
   args: any[];
 } | {
   type: 'get';
-  identifier: string;
+  identifier: string | symbol;
 };
 
 type TokenType =

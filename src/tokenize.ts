@@ -138,6 +138,9 @@ function tokenizeArgumentsList(args: any[]): Token[] {
   return out;
 }
 
+// Attempt to parse as a stringified object, e.g. `[object Foo]`
+const stringifiedObjectRegex = /\[object ([^\]]+)\]/;
+
 // Heuristic to determine if a property key is a valid identifier, or if we should use bracket notation
 // This is NOT spec-compliant: https://stackoverflow.com/a/9337047
 const identRegEx = /^[_$a-zA-Z][_$a-zA-Z0-9]*$/;
@@ -157,14 +160,28 @@ export function tokenizeEcho(Echo: Echo): Token[] {
       case 'get': {
         // determining types for property accesses is harder than argument lists since everything is stringified
         if(!out.length) {
-          out = [{value: item.identifier, type: 'variable'}];
+          out = [{value: String(item.identifier), type: 'variable'}];
+        } else if (typeof item.identifier === 'symbol') {
+          const description = item.identifier.description;
+          const symbolTokens: Token[] = [{ value: 'Symbol', type: 'variable' }, T.operator`(`, { value: escapeString(description), type: 'string' }, T.operator`)`];
+          out = [...out, T.operator`[`, ...symbolTokens, T.operator`]`];
         } else {
           let identToken: Token;
           if(specialIdentTypes.has(item.identifier)) {
             // it's a special identifier (like a keyword) with a hard-coded type
             identToken = {value: item.identifier, type: specialIdentTypes.get(item.identifier)};
+          } else if (!item.identifier.trim()) {
+            identToken = {value: escapeString(item.identifier), type: 'string'};
           } else if(!Number.isNaN(Number(item.identifier))) {
             identToken = {value: item.identifier, type: 'number'};
+          } else if (stringifiedObjectRegex.test(item.identifier)) {
+            const [, name] = item.identifier.match(stringifiedObjectRegex);
+            if(name && name != 'Object') {
+              // in my experience this is almost always wrong, but closer than [object Object]
+              identToken = {value: `${name} {}`, type: 'object'};
+            } else {
+              identToken = {value: '{}', type: 'object'};
+            }
           } else if(!options.bracketNotationOptional || !identRegEx.test(item.identifier)) {
             // it's a string and is either not a valid identifier or bracketNotationOptional is off
             identToken = {value: escapeString(item.identifier), type: 'string'};

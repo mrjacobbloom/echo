@@ -5,7 +5,7 @@
 (function () {
   'use strict';
 
-  var colorMode = 'browser';
+  let colorMode = 'browser';
   if (typeof process !== undefined) {
       try {
           if (process.stdout.isTTY && process.stdout.getColorDepth() >= 4) {
@@ -15,10 +15,10 @@
               colorMode = 'off';
           }
       }
-      catch (_a) { }
+      catch { }
   }
   var options = {
-      colorMode: colorMode,
+      colorMode,
       bracketNotationOptional: true,
       constructorParensOptional: true,
       parensOptional: true,
@@ -28,30 +28,10 @@
       autoLogMinLength: 1,
   };
 
-  /*! *****************************************************************************
-  Copyright (c) Microsoft Corporation. All rights reserved.
-  Licensed under the Apache License, Version 2.0 (the "License"); you may not use
-  this file except in compliance with the License. You may obtain a copy of the
-  License at http://www.apache.org/licenses/LICENSE-2.0
+  const ECHO_INTERNALS = Symbol('ECHO_INTERNALS');
+  const ECHO_SELF = Symbol('ECHO_SELF');
 
-  THIS CODE IS PROVIDED ON AN *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-  KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION ANY IMPLIED
-  WARRANTIES OR CONDITIONS OF TITLE, FITNESS FOR A PARTICULAR PURPOSE,
-  MERCHANTABLITY OR NON-INFRINGEMENT.
-
-  See the Apache Version 2.0 License for specific language governing permissions
-  and limitations under the License.
-  ***************************************************************************** */
-
-  function __makeTemplateObject(cooked, raw) {
-      if (Object.defineProperty) { Object.defineProperty(cooked, "raw", { value: raw }); } else { cooked.raw = raw; }
-      return cooked;
-  }
-
-  var ECHO_INTERNALS = Symbol('ECHO_INTERNALS');
-  var ECHO_SELF = Symbol('ECHO_SELF');
-
-  var specialIdentTypes = new Map(Object.entries({
+  const specialIdentTypes = new Map(Object.entries({
       'undefined': 'undefined',
       'null': 'null',
       'true': 'boolean',
@@ -66,8 +46,8 @@
    * @returns {string} Escaped string, including delimiters.
    */
   function escapeString(string) {
-      var d = string.match('\n') ? '`' : options.stringDelimiter;
-      var regexp = new RegExp(d, 'g');
+      const d = string.match('\n') ? '`' : options.stringDelimiter;
+      const regexp = new RegExp(d, 'g');
       return d + string.replace(regexp, '\\' + d) + d;
   }
   /**
@@ -83,14 +63,13 @@
    * @param {any[]} args Arguments list of the apply
    * @returns {Token[]} Reconstructed literal, including backticks
    */
-  function tokenizeTemplateLiteralFromTagArgs(_a) {
-      var raw = _a[0].raw, args = _a.slice(1);
-      var prevToken = { value: "`" + raw[0], type: 'string' };
-      var tokens = [prevToken];
-      for (var i = 0; i < args.length; i++) {
+  function tokenizeTemplateLiteralFromTagArgs([{ raw }, ...args]) {
+      let prevToken = { value: `\`${raw[0]}`, type: 'string' };
+      const tokens = [prevToken];
+      for (let i = 0; i < args.length; i++) {
           prevToken.value += '${';
-          tokens.push.apply(tokens, tokenizeValue(args[i]));
-          prevToken = { value: "}" + raw[i + 1], type: 'string' };
+          tokens.push(...tokenizeValue(args[i]));
+          prevToken = { value: `}${raw[i + 1]}`, type: 'string' };
           tokens.push(prevToken);
       }
       prevToken.value += '`';
@@ -99,24 +78,20 @@
   /**
    * Tags to generate tokens from template strings, and whitespace getter.
    */
-  var T = {
-      operator: function (_a) {
-          var value = _a[0];
-          return { value: value, type: 'operator' };
+  const T = {
+      operator([value]) {
+          return { value, type: 'operator' };
       },
-      string: function (_a) {
-          var value = _a[0];
-          return { value: value, type: 'string' };
+      string([value]) {
+          return { value, type: 'string' };
       },
-      keyword: function (_a) {
-          var value = _a[0];
-          return { value: value, type: 'keyword' };
+      keyword([value]) {
+          return { value, type: 'keyword' };
       },
-      default: function (_a) {
-          var value = _a[0];
-          return { value: value, type: 'default' };
+      default([value]) {
+          return { value, type: 'default' };
       },
-      space: function () {
+      space() {
           return { value: ' ', type: 'default' };
       }
   };
@@ -129,7 +104,7 @@
       if (value && value[ECHO_SELF]) {
           return tokenizeEcho(value[ECHO_SELF]);
       }
-      var out = [];
+      const out = [];
       switch (typeof value) {
           case 'string': {
               out.push({ value: escapeString(value), type: 'string' });
@@ -146,13 +121,13 @@
           }
           case 'object': {
               if (value) {
-                  var name = value.__proto__.name || value.constructor.name;
+                  const name = value.__proto__.name || value.constructor.name;
                   if (Array.isArray(value)) {
-                      out.push.apply(out, [T.operator(templateObject_1 || (templateObject_1 = __makeTemplateObject(["["], ["["])))].concat(tokenizeArgumentsList(value), [T.operator(templateObject_2 || (templateObject_2 = __makeTemplateObject(["]"], ["]"])))]));
+                      out.push(T.operator `[`, ...tokenizeArgumentsList(value), T.operator `]`);
                   }
                   else if (name && name != 'Object') {
                       // in my experience this is almost always wrong, but closer than [object Object]
-                      out.push({ value: name + " {}", type: 'object' });
+                      out.push({ value: `${name} {}`, type: 'object' });
                   }
                   else {
                       out.push({ value: '{}', type: 'object' });
@@ -185,42 +160,62 @@
    * @returns {Token[]}
    */
   function tokenizeArgumentsList(args) {
-      var out = [];
-      args.forEach(function (arg, idx) {
-          out.push.apply(out, tokenizeValue(arg));
+      const out = [];
+      args.forEach((arg, idx) => {
+          out.push(...tokenizeValue(arg));
           if (idx < args.length - 1)
-              out.push(T.operator(templateObject_3 || (templateObject_3 = __makeTemplateObject([","], [","]))), T.space());
+              out.push(T.operator `,`, T.space());
       });
       return out;
   }
+  // Attempt to parse as a stringified object, e.g. `[object Foo]`
+  const stringifiedObjectRegex = /\[object ([^\]]+)\]/;
   // Heuristic to determine if a property key is a valid identifier, or if we should use bracket notation
   // This is NOT spec-compliant: https://stackoverflow.com/a/9337047
-  var identRegEx = /^[_$a-zA-Z][_$a-zA-Z0-9]*$/;
+  const identRegEx = /^[_$a-zA-Z][_$a-zA-Z0-9]*$/;
   /**
    * Render a given Echo into an array of Tokens (strings bundled with type info).
    * @param {Echo} Echo Echo to tokenize
    * @returns {Token[]} Token list.
    */
   function tokenizeEcho(Echo) {
-      var stack = Echo[ECHO_INTERNALS].stack;
-      var out = [];
-      for (var i = 0; i < stack.length; i++) {
-          var prevType = i > 0 ? stack[i - 1].type : '';
-          var item = stack[i];
+      const stack = Echo[ECHO_INTERNALS].stack;
+      let out = [];
+      for (let i = 0; i < stack.length; i++) {
+          const prevType = i > 0 ? stack[i - 1].type : '';
+          const item = stack[i];
           switch (item.type) {
               case 'get': {
                   // determining types for property accesses is harder than argument lists since everything is stringified
                   if (!out.length) {
-                      out = [{ value: item.identifier, type: 'variable' }];
+                      out = [{ value: String(item.identifier), type: 'variable' }];
+                  }
+                  else if (typeof item.identifier === 'symbol') {
+                      const description = item.identifier.description;
+                      const symbolTokens = [{ value: 'Symbol', type: 'variable' }, T.operator `(`, { value: escapeString(description), type: 'string' }, T.operator `)`];
+                      out = [...out, T.operator `[`, ...symbolTokens, T.operator `]`];
                   }
                   else {
-                      var identToken = void 0;
+                      let identToken;
                       if (specialIdentTypes.has(item.identifier)) {
                           // it's a special identifier (like a keyword) with a hard-coded type
                           identToken = { value: item.identifier, type: specialIdentTypes.get(item.identifier) };
                       }
+                      else if (!item.identifier.trim()) {
+                          identToken = { value: escapeString(item.identifier), type: 'string' };
+                      }
                       else if (!Number.isNaN(Number(item.identifier))) {
                           identToken = { value: item.identifier, type: 'number' };
+                      }
+                      else if (stringifiedObjectRegex.test(item.identifier)) {
+                          const [, name] = item.identifier.match(stringifiedObjectRegex);
+                          if (name && name != 'Object') {
+                              // in my experience this is almost always wrong, but closer than [object Object]
+                              identToken = { value: `${name} {}`, type: 'object' };
+                          }
+                          else {
+                              identToken = { value: '{}', type: 'object' };
+                          }
                       }
                       else if (!options.bracketNotationOptional || !identRegEx.test(item.identifier)) {
                           // it's a string and is either not a valid identifier or bracketNotationOptional is off
@@ -231,42 +226,42 @@
                       }
                       // If !parensOptional or heuristics say we need parens, wrap prior stuff in parens
                       if (!options.parensOptional || prevType === 'construct') {
-                          out = [T.operator(templateObject_4 || (templateObject_4 = __makeTemplateObject(["("], ["("])))].concat(out, [T.operator(templateObject_5 || (templateObject_5 = __makeTemplateObject([")"], [")"])))]);
+                          out = [T.operator `(`, ...out, T.operator `)`];
                       }
                       if (identToken.type === 'property') {
-                          out = out.concat([T.operator(templateObject_6 || (templateObject_6 = __makeTemplateObject(["."], ["."]))), identToken]);
+                          out = [...out, T.operator `.`, identToken];
                       }
                       else {
-                          out = out.concat([T.operator(templateObject_7 || (templateObject_7 = __makeTemplateObject(["["], ["["]))), identToken, T.operator(templateObject_8 || (templateObject_8 = __makeTemplateObject(["]"], ["]"])))]);
+                          out = [...out, T.operator `[`, identToken, T.operator `]`];
                       }
                   }
                   break;
               }
               case 'construct': {
                   // handle arguments list and whether parens are necessary at all
-                  var args = [];
+                  let args = [];
                   if (!options.constructorParensOptional || item.args.length) {
-                      args = [T.operator(templateObject_9 || (templateObject_9 = __makeTemplateObject(["("], ["("])))].concat(tokenizeArgumentsList(item.args), [T.operator(templateObject_10 || (templateObject_10 = __makeTemplateObject([")"], [")"])))]);
+                      args = [T.operator `(`, ...tokenizeArgumentsList(item.args), T.operator `)`];
                   }
                   // decide whether to wrap the constructor in parentheses for clarity
                   if (options.parensOptional && prevType !== 'apply') {
-                      out = [T.keyword(templateObject_11 || (templateObject_11 = __makeTemplateObject(["new"], ["new"]))), T.space()].concat(out, args);
+                      out = [T.keyword `new`, T.space(), ...out, ...args];
                   }
                   else {
-                      out = [T.keyword(templateObject_12 || (templateObject_12 = __makeTemplateObject(["new"], ["new"]))), T.space(), T.operator(templateObject_13 || (templateObject_13 = __makeTemplateObject(["("], ["("])))].concat(out, [T.operator(templateObject_14 || (templateObject_14 = __makeTemplateObject([")"], [")"])))], args);
+                      out = [T.keyword `new`, T.space(), T.operator `(`, ...out, T.operator `)`, ...args];
                   }
                   break;
               }
               case 'apply': {
                   if (calledAsTemplateTag(item.args)) {
-                      out = out.concat(tokenizeTemplateLiteralFromTagArgs(item.args));
+                      out = [...out, ...tokenizeTemplateLiteralFromTagArgs(item.args)];
                   }
                   else {
                       if (!options.parensOptional || prevType === 'construct') {
-                          out = [T.operator(templateObject_15 || (templateObject_15 = __makeTemplateObject(["("], ["("])))].concat(out, [T.operator(templateObject_16 || (templateObject_16 = __makeTemplateObject([")"], [")"]))), T.operator(templateObject_17 || (templateObject_17 = __makeTemplateObject(["("], ["("])))], tokenizeArgumentsList(item.args), [T.operator(templateObject_18 || (templateObject_18 = __makeTemplateObject([")"], [")"])))]);
+                          out = [T.operator `(`, ...out, T.operator `)`, T.operator `(`, ...tokenizeArgumentsList(item.args), T.operator `)`];
                       }
                       else {
-                          out = out.concat([T.operator(templateObject_19 || (templateObject_19 = __makeTemplateObject(["("], ["("])))], tokenizeArgumentsList(item.args), [T.operator(templateObject_20 || (templateObject_20 = __makeTemplateObject([")"], [")"])))]);
+                          out = [...out, T.operator `(`, ...tokenizeArgumentsList(item.args), T.operator `)`];
                       }
                   }
                   break;
@@ -275,9 +270,8 @@
       }
       return out;
   }
-  var templateObject_1, templateObject_2, templateObject_3, templateObject_4, templateObject_5, templateObject_6, templateObject_7, templateObject_8, templateObject_9, templateObject_10, templateObject_11, templateObject_12, templateObject_13, templateObject_14, templateObject_15, templateObject_16, templateObject_17, templateObject_18, templateObject_19, templateObject_20;
 
-  var ANSI = {
+  const ANSI = {
       reset: "\x1b[0m",
       red: "\x1b[31m",
       green: "\x1b[32m",
@@ -293,7 +287,7 @@
               'keyword': 'color: hsl(310, 86%, 36%)',
               'number': 'color: hsl(248, 100%, 41%)',
               'string': 'color: hsl(1, 80%, 43%)',
-              'boolean': 'color: hsl(310, 86%, 36%)',
+              'boolean': 'color: hsl(248, 100%, 41%)',
               'object': 'color: black',
               'null': 'color: hsl(310, 86%, 36%)',
               'undefined': 'color: hsl(310, 86%, 36%)',
@@ -306,7 +300,7 @@
               'keyword': ANSI.magenta,
               'number': ANSI.blue,
               'string': ANSI.red,
-              'boolean': ANSI.magenta,
+              'boolean': ANSI.blue,
               'object': ANSI.reset,
               'null': ANSI.magenta,
               'undefined': ANSI.magenta,
@@ -356,22 +350,21 @@
    * @param options
    */
   function prettyPrint(tokens) {
-      var ret = {
-          tokens: tokens,
-          plaintext: tokens.map(function (token) { return typeof token === 'string' ? token : token.value; }).join(''),
+      const ret = {
+          tokens,
+          plaintext: tokens.map(token => typeof token === 'string' ? token : token.value).join(''),
           formatted: null,
       };
       if (options.colorMode === 'off') {
           ret.formatted = [ret.plaintext];
       }
       else if (options.colorMode === 'browser') {
-          var theme = THEMES[options.theme].browser;
-          var formatString = '';
-          var styles = [];
-          var prevStyle = void 0;
-          for (var _i = 0, tokens_1 = tokens; _i < tokens_1.length; _i++) {
-              var token = tokens_1[_i];
-              var style = theme[token.type] || theme.default;
+          const theme = THEMES[options.theme].browser;
+          let formatString = '';
+          const styles = [];
+          let prevStyle;
+          for (const token of tokens) {
+              const style = theme[token.type] || theme.default;
               if (style !== prevStyle) {
                   formatString += '%c';
                   styles.push(style);
@@ -379,15 +372,14 @@
               formatString += token.value.replace(/%/g, '%%');
               prevStyle = style;
           }
-          ret.formatted = [formatString].concat(styles);
+          ret.formatted = [formatString, ...styles];
       }
       else {
-          var theme = THEMES[options.theme].ansi;
-          var out = '';
-          var prevColorCode = void 0;
-          for (var _a = 0, tokens_2 = tokens; _a < tokens_2.length; _a++) {
-              var token = tokens_2[_a];
-              var colorCode = theme[token.type] || theme.default;
+          const theme = THEMES[options.theme].ansi;
+          let out = '';
+          let prevColorCode;
+          for (const token of tokens) {
+              const colorCode = theme[token.type] || theme.default;
               if (colorCode !== prevColorCode)
                   out += colorCode;
               out += token.value;
@@ -399,61 +391,56 @@
       return ret;
   }
 
-  var ignoreIdents = [
+  const ignoreIdents = [
       // public interface
       'render', 'options', 'then', 'toString',
       // avoid breaking the console, or JavaScript altogether
-      'valueOf', 'constructor', 'prototype', '__proto__'
+      'valueOf', 'constructor', 'prototype', '__proto__',
+      // symbols
+      'Symbol(nodejs.util.inspect.custom)', 'Symbol(Symbol.toPrimitive)'
   ];
-  var symbolInspect = typeof process !== 'undefined' ? Symbol.for('nodejs.util.inspect.custom') : null;
-  var handler = {
-      get: function (target, identifier) {
+  const symbolInspect = typeof process !== 'undefined' ? Symbol.for('nodejs.util.inspect.custom') : null;
+  const handler = {
+      get(target, identifier) {
           if (identifier === ECHO_SELF)
               return target;
-          if (typeof identifier === 'symbol'
-              || ignoreIdents.includes(identifier)) {
+          if (ignoreIdents.includes(String(identifier))) {
               if (identifier == 'options')
                   target[ECHO_INTERNALS].autoLogDisabled.value = true;
               return target[identifier];
           }
-          target[ECHO_INTERNALS].stack.push({ type: 'get', identifier: String(identifier) });
+          target[ECHO_INTERNALS].stack.push({ type: 'get', identifier });
           return target[ECHO_INTERNALS].proxy;
       },
-      construct: function (target, args) {
-          target[ECHO_INTERNALS].stack.push({ type: 'construct', args: args });
+      construct(target, args) {
+          target[ECHO_INTERNALS].stack.push({ type: 'construct', args });
           return target[ECHO_INTERNALS].proxy;
       },
-      apply: function (target, that, args) {
-          target[ECHO_INTERNALS].stack.push({ type: 'apply', args: args });
+      apply(target, that, args) {
+          target[ECHO_INTERNALS].stack.push({ type: 'apply', args });
           return target[ECHO_INTERNALS].proxy;
       },
   };
-  function generateEcho(autoLogDisabled) {
-      var Echo = function Echo() { }; // eslint-disable-line
+  function generateEcho(autoLogDisabled, id) {
+      const Echo = function Echo() { }; // eslint-disable-line
       Echo[ECHO_INTERNALS] = {
-          autoLogDisabled: autoLogDisabled,
+          autoLogDisabled,
           stack: [{ type: 'get', identifier: 'Echo' }],
           proxy: new Proxy(Echo, handler),
+          id
       };
-      Echo.render = function (disableAutoLog) {
-          if (disableAutoLog === void 0) { disableAutoLog = true; }
+      Echo.render = (disableAutoLog = true) => {
           if (disableAutoLog)
               autoLogDisabled.value = true;
-          var t = tokenizeEcho(Echo);
+          const t = tokenizeEcho(Echo);
           return prettyPrint(t);
       };
       //eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-      Echo.then = function () {
-          var args = [];
-          for (var _i = 0; _i < arguments.length; _i++) {
-              args[_i] = arguments[_i];
-          }
-          return Promise.prototype.then.apply(Promise.resolve(Echo.render()), args);
-      };
-      Echo.toString = function () { return Echo.render().plaintext; };
-      Echo[Symbol.toPrimitive] = function () { return Echo.render().plaintext; };
+      Echo.then = (...args) => Promise.prototype.then.apply(Promise.resolve(Echo.render()), args);
+      Echo.toString = () => Echo.render(id === 0).plaintext; // don't disable autoLog when being stringified in another Echo's get-brackets
+      Echo[Symbol.toPrimitive] = Echo.toString;
       if (symbolInspect) {
-          Echo[symbolInspect] = function () { return Echo.render(false).formatted[0]; };
+          Echo[symbolInspect] = () => Echo.render(false).formatted[0];
       }
       Echo.options = options;
       delete Echo.__proto__;
@@ -468,7 +455,7 @@
    * @param getter Getter function when that property is accessed
    */
   function attachToGlobal(property, getter) {
-      var global_ = typeof globalThis !== 'undefined' ? globalThis :
+      const global_ = typeof globalThis !== 'undefined' ? globalThis :
           typeof self !== 'undefined' ? self :
               typeof window !== 'undefined' ? window :
                   typeof global !== 'undefined' ? global : null;
@@ -477,22 +464,22 @@
       Object.defineProperty(global_, property, { get: getter });
   }
 
-  var autoLogDisabled = { value: false };
-  var echoCount = 0;
-  var maxTokensLength = 0;
-  var formatted = [];
-  attachToGlobal('Echo', function () {
-      var Echo = generateEcho(autoLogDisabled);
+  const autoLogDisabled = { value: false };
+  let echoCount = 0;
+  let maxTokensLength = 0;
+  let formatted = [];
+  attachToGlobal('Echo', () => {
+      const Echo = generateEcho(autoLogDisabled, echoCount);
       if (echoCount === 0)
           autoLogDisabled.value = false;
       if (options.autoLog) {
           echoCount++;
-          setTimeout(function () {
+          setTimeout(() => {
               // deal with race between the whole expression and each of its sub-
               // expressions, as well as arguments that are other Echoes: just wait a
               // tick 'till they've all evaluated and use whichever stringified 
               // version is longest
-              var prettyPrinted = Echo.render(false);
+              const prettyPrinted = Echo.render(false);
               if (prettyPrinted.tokens.length > maxTokensLength) {
                   maxTokensLength = prettyPrinted.tokens.length;
                   formatted = prettyPrinted.formatted;
@@ -500,7 +487,7 @@
               echoCount--;
               if (echoCount === 0) {
                   if (maxTokensLength >= options.autoLogMinLength && !autoLogDisabled.value)
-                      console.log.apply(console, formatted);
+                      console.log(...formatted);
                   autoLogDisabled.value = false;
                   maxTokensLength = 0;
                   formatted = [];

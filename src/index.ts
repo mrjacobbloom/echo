@@ -9,7 +9,7 @@ let maxTokensLength = 0;
 let formatted: string[] = [];
 
 attachToGlobal('Echo', () => {
-  const Echo = generateEcho(autoLogDisabled);
+  const Echo = generateEcho(autoLogDisabled, echoCount);
   if (echoCount === 0) autoLogDisabled.value = false;
   if(options.autoLog) {
     echoCount++;
