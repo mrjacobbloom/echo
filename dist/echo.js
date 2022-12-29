@@ -53,7 +53,7 @@
   /**
    * Determine whether the function was called as a template tag
    * @param {any[]} args Arguments list of the apply
-   * @returns {boolean}
+   * @returns {args is [TemplateStringsArray, ...any[]]}
    */
   function calledAsTemplateTag(args) {
       return args[0] && Array.isArray(args[0]) && Array.isArray(args[0].raw);
