@@ -1,6 +1,6 @@
 {
   "name": "echo-proxy",
-  "version": "1.6.0",
+  "version": "1.7.0",
   "description": "Fun with proxies. Repeats after you.",
   "main": "dist/echo.js",
   "types": "dist/declarations.d.ts",
