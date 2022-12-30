@@ -5,7 +5,7 @@ import { ECHO_INTERNALS, ECHO_SELF } from './symbols';
 
 const ignoreIdents: any[] = [
   // public interface
-  'render', 'options', 'then', 'print', 'toString',
+  'render', 'options', 'then', 'print', 'toString', '__registerPublicGetter',
 
   // avoid breaking the console, or JavaScript altogether
   'valueOf', 'constructor', 'prototype', '__proto__',
@@ -13,11 +13,16 @@ const ignoreIdents: any[] = [
   'Symbol(nodejs.util.inspect.custom)', 'Symbol(Symbol.toPrimitive)'
 ];
 
+const customPublicGetters= new Map<string | symbol, (echo: Echo) => any>();
+
 const symbolInspect = typeof process !== 'undefined' ? Symbol.for('nodejs.util.inspect.custom') : null;
 
 const handler: ProxyHandler<Echo> = {
   get(target, identifier) {
     if (identifier === ECHO_SELF) return target;
+    if (customPublicGetters.has(identifier)) {
+      return customPublicGetters.get(identifier)(target);
+    }
     if(ignoreIdents.includes(String(identifier))) {
       if(identifier == 'options') target[ECHO_INTERNALS].autoLogDisabled.value = true;
       return target[identifier];
@@ -32,6 +37,17 @@ const handler: ProxyHandler<Echo> = {
   apply(target, that, args) {
     target[ECHO_INTERNALS].stack.push({type: 'apply', args});
     return target[ECHO_INTERNALS].proxy;
+  },
+  has(target, identifier) {
+    return ignoreIdents.includes(String(identifier)) || customPublicGetters.has(identifier);
+  },
+  getOwnPropertyDescriptor(target, identifier) {
+    if (ignoreIdents.includes(String(identifier))) {
+      return { value: target[identifier] };
+    } else if (customPublicGetters.has(identifier)) {
+      return { value: customPublicGetters.get(identifier)(target), configurable: true };
+    }
+    return null;
   },
 };
 
@@ -56,9 +72,12 @@ export default function generateEcho(autoLogDisabled: { value: boolean }, id: nu
 
   Echo.toString = (): string => Echo.render(id === 0).plaintext; // don't disable autoLog when being stringified in another Echo's get-brackets
   Echo[Symbol.toPrimitive] = Echo.toString;
+
   if(symbolInspect) {
     Echo[symbolInspect] = (): string => Echo.render(false).formatted[0];
   }
+
+  Echo.__registerPublicGetter = (identifier: string | symbol, getter: (echo: Echo) => any): void => { customPublicGetters.set(identifier, getter) };
 
   Echo.options = options;
 

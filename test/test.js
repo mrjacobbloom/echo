@@ -79,6 +79,19 @@ describe('Echo public interface tests', () => {
   it('Echo.toString works', () => {
     expect(Echo.foo(1).bar.toString()).to.equal(Echo.foo(1).bar.toString());
   });
+
+  it('Echo.__registerPublicGetter works as expected', async () => {
+    const key = Symbol('foo');
+    const getter = stub();
+    Echo.__registerPublicGetter(key, getter);
+    stub(console, 'log');
+    Echo[key];
+    await setTimeoutAsync(10);
+    expect(console.log.callCount).to.equal(0);
+    console.log.restore();
+    expect(getter.callCount).to.equal(1);
+    expect(getter.args[0][0]).to.be.a('function');
+  })
 });
 
 describe('tokenize tests', () => {

@@ -6,7 +6,7 @@ if (typeof process !== undefined) {
     } else {
       colorMode = 'off';
     }
-  } catch {}
+  } catch (e) {}
 }
 export default {
   colorMode,

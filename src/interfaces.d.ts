@@ -23,6 +23,7 @@ type EchoProxy = {
   options: Options;
   render: (disableAutoLog?: boolean) => PrettyPrintOutput;
   then: typeof Promise.prototype.then;
+  __registerPublicGetter: (identifier: string | symbol, getter: (echo: Echo) => any) => void;
 };
 
 type Echo = {
@@ -41,6 +42,7 @@ type Echo = {
   render: (disableAutoLog?: boolean) => PrettyPrintOutput;
   print: () => void;
   then: typeof Promise.prototype.then;
+  __registerPublicGetter: (identifier: string | symbol, getter: (echo: Echo) => any) => void;
 };
 
 /**

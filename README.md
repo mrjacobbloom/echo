@@ -3,7 +3,7 @@
 Fun with proxies. Do any combination of calls, constructs, and dot-walks
 starting with `Echo`, and an approximation of what you typed is logged to the
 console (with syntax highlighting!) Play with it in your browser on
-[RunKit](https://runkit.com/mrjacobbloom/play-with-echo/1.3.0/clone?results=false)!
+[RunKit](https://runkit.com/mrjacobbloom/play-with-echo/1.4.0/clone?results=false)!
 
 ![Demo of Echo in action](https://raw.githubusercontent.com/mrjacobbloom/echo/master/demo.gif)
 
@@ -30,7 +30,7 @@ _Requirements: Browsers released after 2018. Node 11 or newer._
 
 ### RunKit
 
-The easiest way to play with Echo is in your browser on [RunKit](https://runkit.com/mrjacobbloom/play-with-echo/1.3.0/clone?results=false)!
+The easiest way to play with Echo is in your browser on [RunKit](https://runkit.com/mrjacobbloom/play-with-echo/1.4.0/clone?results=false)!
 
 ### Browser
 

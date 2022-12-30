@@ -15,7 +15,7 @@
               colorMode = 'off';
           }
       }
-      catch { }
+      catch (e) { }
   }
   var options = {
       colorMode,
@@ -394,17 +394,21 @@
 
   const ignoreIdents = [
       // public interface
-      'render', 'options', 'then', 'print', 'toString',
+      'render', 'options', 'then', 'print', 'toString', '__registerPublicGetter',
       // avoid breaking the console, or JavaScript altogether
       'valueOf', 'constructor', 'prototype', '__proto__',
       // symbols
       'Symbol(nodejs.util.inspect.custom)', 'Symbol(Symbol.toPrimitive)'
   ];
+  const customPublicGetters = new Map();
   const symbolInspect = typeof process !== 'undefined' ? Symbol.for('nodejs.util.inspect.custom') : null;
   const handler = {
       get(target, identifier) {
           if (identifier === ECHO_SELF)
               return target;
+          if (customPublicGetters.has(identifier)) {
+              return customPublicGetters.get(identifier)(target);
+          }
           if (ignoreIdents.includes(String(identifier))) {
               if (identifier == 'options')
                   target[ECHO_INTERNALS].autoLogDisabled.value = true;
@@ -420,6 +424,18 @@
       apply(target, that, args) {
           target[ECHO_INTERNALS].stack.push({ type: 'apply', args });
           return target[ECHO_INTERNALS].proxy;
+      },
+      has(target, identifier) {
+          return ignoreIdents.includes(String(identifier)) || customPublicGetters.has(identifier);
+      },
+      getOwnPropertyDescriptor(target, identifier) {
+          if (ignoreIdents.includes(String(identifier))) {
+              return { value: target[identifier] };
+          }
+          else if (customPublicGetters.has(identifier)) {
+              return { value: customPublicGetters.get(identifier)(target), configurable: true };
+          }
+          return null;
       },
   };
   function generateEcho(autoLogDisabled, id) {
@@ -444,6 +460,7 @@
       if (symbolInspect) {
           Echo[symbolInspect] = () => Echo.render(false).formatted[0];
       }
+      Echo.__registerPublicGetter = (identifier, getter) => { customPublicGetters.set(identifier, getter); };
       Echo.options = options;
       delete Echo.__proto__;
       delete Echo.name;

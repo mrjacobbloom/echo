@@ -21,6 +21,11 @@ declare namespace EchoProxy {
       toString: () => string;
 
       /**
+       * Really only exists to inject the RunKit value viewer.
+       */
+      __registerPublicGetter: (identifier: string | symbol, getter: (echo: Echo) => any) => void;
+
+      /**
        * Options to configure Echo
        */
       options: EchoProxy.Options;
