@@ -5,7 +5,7 @@ import { ECHO_INTERNALS, ECHO_SELF } from './symbols';
 
 const ignoreIdents: any[] = [
   // public interface
-  'render', 'options', 'then', 'toString',
+  'render', 'options', 'then', 'print', 'toString',
 
   // avoid breaking the console, or JavaScript altogether
   'valueOf', 'constructor', 'prototype', '__proto__',
@@ -48,6 +48,9 @@ export default function generateEcho(autoLogDisabled: { value: boolean }, id: nu
     const t = tokenizeEcho(Echo);
     return prettyPrint(t);
   }
+
+  Echo.print = (): void => console.log(...Echo.render().formatted);
+
   //eslint-disable-next-line @typescript-eslint/explicit-function-return-type
   Echo.then = (...args) => Promise.prototype.then.apply(Promise.resolve(Echo.render()), args);
 

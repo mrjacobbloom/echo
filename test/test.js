@@ -31,8 +31,17 @@ describe('Echo public interface tests', () => {
         { value: ')', type: 'operator' }
       ],
       plaintext: 'Echo.foo.bar(123)',
-      formatted: [ 'Echo.foo.bar(123)' ]
+      formatted: [ 'Echo.foo.bar(123)' ],
+      theme: null,
     });
+  });
+
+  it('Echo.print works as expected, and normal logging is prevented', async () => {
+    stub(console, 'log');
+    Echo.foo.print();
+    await setTimeoutAsync(10);
+    expect(console.log.callCount).to.equal(1);
+    console.log.restore();
   });
 
   it('Echo.then resolves to correct shape', async () => {
@@ -49,7 +58,8 @@ describe('Echo public interface tests', () => {
         { value: ')', type: 'operator' }
       ],
       plaintext: 'Echo.foo.bar(123)',
-      formatted: [ 'Echo.foo.bar(123)' ]
+      formatted: [ 'Echo.foo.bar(123)' ],
+      theme: null,
     });
   });
 
@@ -546,6 +556,12 @@ describe('prettyPrint tests', () => {
       const { formatted: [ formatString ] } = await Echo(1)()()();
       expect(formatString).to.equal('%cEcho(%c1%c)()()()');
     });
+    it('Correct theme object is returned from Echo.render()', async () => {
+      const { theme } = await Echo;
+      expect(theme).to.be.an('object');
+      expect(theme.keyword).to.be.a('string');
+      expect(theme.keyword).to.include('color:');
+    });
   });
   describe('colorMode=\'ansi\'', () => {
     beforeEach(() => Echo.options.colorMode = 'ansi');
@@ -556,6 +572,12 @@ describe('prettyPrint tests', () => {
     it('Neighboring tokens with same color code are coalesced', async () => {
       const { formatted: [ formatString ] } = await Echo(1)()()();
       expect(formatString).to.equal('\x1b[0mEcho(\x1b[34m1\x1b[0m)()()()\x1b[0m');
+    });
+    it('Correct theme object is returned from Echo.render()', async () => {
+      const { theme } = await Echo;
+      expect(theme).to.be.an('object');
+      expect(theme.keyword).to.be.a('string');
+      expect(theme.keyword).to.include('\x1b');
     });
   });
 });

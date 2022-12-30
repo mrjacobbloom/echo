@@ -39,6 +39,7 @@ type Echo = {
     id: number;
   };
   render: (disableAutoLog?: boolean) => PrettyPrintOutput;
+  print: () => void;
   then: typeof Promise.prototype.then;
 };
 
@@ -75,15 +76,18 @@ type Token = {
   type: TokenType;
 };
 
+type Theme = { [tokenType in TokenType]: string };
+
 type PrettyPrintOutput = {
   tokens: Token[];
   plaintext: string;
   formatted: string[];
+  theme: Theme;
 };
 
 interface ThemeMap {
   [theme: string]: {
-    browser: { [tokenType in TokenType]: string };
-    ansi: { [tokenType in TokenType]: string };
+    browser: Theme;
+    ansi: Theme;
   };
 }

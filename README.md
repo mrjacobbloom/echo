@@ -25,13 +25,15 @@ console (now with syntax highlighting)
 
 ## Usage
 
+### Compatibility
+
+If you're reading this in the 2020's or later you're probably good. I believe the newest JS feature required by Echo is Symbol.description, so [this compatibility table](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Symbol/description#browser_compatibility) should tell you what the minimum required versions of Node/browsers are.
+
 ### Browser
 
 The easiest way to use Echo is to paste [`dist/echo.min.js`](https://raw.githubusercontent.com/mrjacobbloom/echo/master/dist/echo.min.js) into your console (note: Echo is harmless, but you should always [be careful about pasting code into your console!](https://en.wikipedia.org/wiki/Self-XSS)).
 
 ### Node
-
-Echo requires Node 10.12 or later.
 
 ```shell
 npm install echo-proxy
@@ -68,11 +70,18 @@ Returns an object with the following shape:
 
 ```
 {
-  tokens: {value: string, type: string}[] -- The output broken up into typed "tokens," which is what Echo uses to do syntax highlighting
-  plaintext: string -- the tokens strung together without any syntax highlighting
-  formatted: string[] -- the tokens with syntax highlighting, formatted as arguments to console.log
+  tokens: {value: string, type: string}[] -- The output broken up into typed "tokens," which is what Echo uses to do syntax highlighting.
+  plaintext: string -- The tokens strung together without any syntax highlighting.
+  formatted: string[] -- The tokens with syntax highlighting, formatted as arguments to console.log.
+  theme: { [tokenType]: [colorString] } -- The "theme" object that maps "token types" to either ANSI colors or hsl colors (or null if options.colorMode='off').
 }
 ```
+
+### `Echo.print()`
+
+_Example: `const value = Echo.foo(); value.print();`_
+
+Logs the value to the console.
 
 ### `Echo.then(...)`
 
@@ -90,28 +99,41 @@ and options that affect its behavior in other ways.
 
 | Property | Type/Options | Default | Explanation |
 | -------- | ------- | ------- | ----------- |
-| `bracketNotationOptional` | Boolean | `true` | When true, use heuristics to decide when to use dot notation. Otherwise, always use square-braket notation. |
-| `parensOptional` | Boolean | `true` | When true, use heuristics to decide whether to wrap subexpressions in parentheses. When false, always wrap them. |
+| `bracketNotationOptional` | Boolean | `true` | When true, use heuristics to decide when to use dot notation. Otherwise, always use square-bracket notation. |
+| `parensOptional` | Boolean | `true` | When true, use heuristics to decide whether to wrap sub-expressions in parentheses. When false, always wrap them. |
 | `constructorParensOptional` | Boolean | `true` | When true, drop parentheses for constructors with no arguments. |
 | `stringDelimiter` | String | `"'"` | What character is used to delimit (bookend) strings, and is escaped from strings. If the string contains a newline, this is ignored and the string is rendered as a template string. |
 | `colorMode` | `"browser"`, `"ansi"`, `"off"` | [auto detected] | Enable or disable syntax highlighting and the mode used to set colors. |
 | `theme` | `"chrome"`, `"firefox"` | [auto detected] | Which DevTools' syntax highlighting theme to use. Defaults to Chrome unless you're using Firefox.
 | `autoLog` | Boolean | `true` | When true, automatically console.log the output. See below. |
-| `autoLogMinLength` | Number | `1` | The minumum number of tokens required to log to console. You can use this to avoid printing in some autocomplete situations. |
+| `autoLogMinLength` | Number | `1` | The minimum number of tokens required to log to console. You can use this to avoid printing in some autocomplete situations. See below. |
 
-#### `Echo.options.autoLog`
+#### The Auto-Logging Problem
 
-When autoLog is `true`, the output is automatically logged to the console. If
-you're in an environment with autocomplete (like Chrome console), this mode may
-cause Echo to be logged several times as you type.
+When `Echo.options.autoLog=true`, the output is automatically logged to the
+console. If you're in an environment with autocomplete (like Chrome console),
+this mode may cause Echo to be logged several times as you type.
 
-This is because the way Echo's auto-logging works means it never knows if the
-expression has finished evaluating and if it's time to print the output. Here
+A little explanation of the way Echo's auto-logging works: it never knows if the
+code has finished evaluating and if it's time to print the output. Here
 are a couple examples to illustrate the problem:
 
-- Consider the expression `Echo.foo.bar`. The subexpression `Echo.foo` is completely evaluated before it looks for `.bar`. While this subexpression is evaluating, all Echo knows is that it's handled one get for `.foo`, it can never tell if that getter is the last one in the chain or if there are more to come.
+- Consider the expression `Echo.foo.bar`. The sub-expression `Echo.foo` is completely evaluated before it looks for `.bar`. While this sub-expression is evaluating, all Echo knows is that the user tried to access `Echo.foo`, it can never tell if that getter is the last one in the chain or if there are more to come.
 - Consider the expression `Echo(Echo.foo)`. We don't want to print the inner Echo on its own line, we want them both to appear in one line.
 
-Echo circumvents this by using setTimeout to wait 1 tick. Then, it prints the
-longest token list found to the console. If a browser console's autocomplete
-tries to inspect Echo as you type, it triggers this process.
+Echo circumvents this by using setTimeout to wait 1 tick. All the various Echoes
+in your code calculate their outputs individually, and then the longest output
+is printed.
+
+This timeout process is skipped when you manually call `Echo.render()` or
+`Echo.print()`. Instead of waiting a tick and logging, everything is handled
+immediately.
+
+So that's how auto-logging works. So why does your browser sometimes cause it to
+print while you're typing? This happens when your browser tries to inspect the
+Echo object to populate the console's autocomplete/intellisense system. From
+Echo's perspective, this snooping looks the same as accessing values on it, so
+it tries to render the output.
+
+To mitigate the extra rendering, we have `Echo.options.autoLogMinLength`. This
+says that any Echo output less than minLength items long shouldn't be printed.

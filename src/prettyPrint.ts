@@ -12,16 +12,17 @@ export default function prettyPrint(tokens: Token[]): PrettyPrintOutput {
     tokens,
     plaintext: tokens.map(token => typeof token === 'string' ? token : token.value).join(''),
     formatted: null,
+    theme: null,
   };
   if(options.colorMode === 'off') {
     ret.formatted = [ret.plaintext];
   } else if(options.colorMode === 'browser') {
-    const theme = THEMES[options.theme].browser;
+    ret.theme = THEMES[options.theme].browser;
     let formatString = '';
     const styles = [];
     let prevStyle: string;
     for(const token of tokens) {
-      const style = theme[token.type] || theme.default;
+      const style = ret.theme[token.type] || ret.theme.default;
       if (style !== prevStyle) {
         formatString += '%c';
         styles.push(style);
@@ -31,11 +32,11 @@ export default function prettyPrint(tokens: Token[]): PrettyPrintOutput {
     }
     ret.formatted = [formatString, ...styles];
   } else {
-    const theme = THEMES[options.theme].ansi;
+    ret.theme = THEMES[options.theme].ansi;
     let out = '';
     let prevColorCode: string;
     for(const token of tokens) {
-      const colorCode = theme[token.type] || theme.default
+      const colorCode = ret.theme[token.type] || ret.theme.default
       if (colorCode !== prevColorCode) out += colorCode;
       out += token.value;
       prevColorCode = colorCode;

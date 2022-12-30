@@ -354,17 +354,18 @@
           tokens,
           plaintext: tokens.map(token => typeof token === 'string' ? token : token.value).join(''),
           formatted: null,
+          theme: null,
       };
       if (options.colorMode === 'off') {
           ret.formatted = [ret.plaintext];
       }
       else if (options.colorMode === 'browser') {
-          const theme = THEMES[options.theme].browser;
+          ret.theme = THEMES[options.theme].browser;
           let formatString = '';
           const styles = [];
           let prevStyle;
           for (const token of tokens) {
-              const style = theme[token.type] || theme.default;
+              const style = ret.theme[token.type] || ret.theme.default;
               if (style !== prevStyle) {
                   formatString += '%c';
                   styles.push(style);
@@ -375,11 +376,11 @@
           ret.formatted = [formatString, ...styles];
       }
       else {
-          const theme = THEMES[options.theme].ansi;
+          ret.theme = THEMES[options.theme].ansi;
           let out = '';
           let prevColorCode;
           for (const token of tokens) {
-              const colorCode = theme[token.type] || theme.default;
+              const colorCode = ret.theme[token.type] || ret.theme.default;
               if (colorCode !== prevColorCode)
                   out += colorCode;
               out += token.value;
@@ -393,7 +394,7 @@
 
   const ignoreIdents = [
       // public interface
-      'render', 'options', 'then', 'toString',
+      'render', 'options', 'then', 'print', 'toString',
       // avoid breaking the console, or JavaScript altogether
       'valueOf', 'constructor', 'prototype', '__proto__',
       // symbols
@@ -435,6 +436,7 @@
           const t = tokenizeEcho(Echo);
           return prettyPrint(t);
       };
+      Echo.print = () => console.log(...Echo.render().formatted);
       //eslint-disable-next-line @typescript-eslint/explicit-function-return-type
       Echo.then = (...args) => Promise.prototype.then.apply(Promise.resolve(Echo.render()), args);
       Echo.toString = () => Echo.render(id === 0).plaintext; // don't disable autoLog when being stringified in another Echo's get-brackets
