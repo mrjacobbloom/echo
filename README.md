@@ -2,7 +2,8 @@
 
 Fun with proxies. Do any combination of calls, constructs, and dot-walks
 starting with `Echo`, and an approximation of what you typed is logged to the
-console (now with syntax highlighting)
+console (with syntax highlighting!) Play with it in your browser on
+[RunKit](https://runkit.com/mrjacobbloom/play-with-echo/1.2.0/clone?results=false)!
 
 ![Demo of Echo in action](https://raw.githubusercontent.com/mrjacobbloom/echo/master/demo.gif)
 
@@ -25,13 +26,17 @@ console (now with syntax highlighting)
 
 ## Usage
 
-### Compatibility
+_Requirements: Browsers released after 2018. Node 11 or newer._
 
-If you're reading this in the 2020's or later you're probably good. I believe the newest JS feature required by Echo is Symbol.description, so [this compatibility table](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Symbol/description#browser_compatibility) should tell you what the minimum required versions of Node/browsers are.
+### RunKit
+
+The easiest way to play with Echo is in your browser on [RunKit](https://runkit.com/mrjacobbloom/play-with-echo/1.2.0/clone?results=false)!
 
 ### Browser
 
-The easiest way to use Echo is to paste [`dist/echo.min.js`](https://raw.githubusercontent.com/mrjacobbloom/echo/master/dist/echo.min.js) into your console (note: Echo is harmless, but you should always [be careful about pasting code into your console!](https://en.wikipedia.org/wiki/Self-XSS)).
+Another way to use Echo is to paste [`dist/echo.min.js`](https://raw.githubusercontent.com/mrjacobbloom/echo/master/dist/echo.min.js)
+into your console (note: Echo is harmless, but you should always
+[be careful about pasting code into your console!](https://en.wikipedia.org/wiki/Self-XSS)).
 
 ### Node
 
