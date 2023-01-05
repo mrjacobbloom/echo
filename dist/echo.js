@@ -401,7 +401,7 @@
       // public interface
       'render', 'options', 'then', 'print', 'toString', '__registerPublicGetter',
       // avoid breaking the console, or JavaScript altogether
-      'valueOf', 'constructor', 'prototype', '__proto__',
+      'valueOf', 'constructor', 'prototype', '__proto__', 'name',
       // symbols
       'Symbol(nodejs.util.inspect.custom)', 'Symbol(Symbol.toPrimitive)'
   ];
@@ -435,12 +435,12 @@
       },
       getOwnPropertyDescriptor(target, identifier) {
           if (ignoreIdents.includes(String(identifier))) {
-              return { value: target[identifier] };
+              return Object.getOwnPropertyDescriptor(target, identifier);
           }
           else if (customPublicGetters.has(identifier)) {
               return { value: customPublicGetters.get(identifier)(target), configurable: true };
           }
-          return null;
+          return { value: null, configurable: true };
       },
   };
   function generateEcho(autoLogDisabled, id) {

@@ -3,12 +3,12 @@ import { tokenizeEcho } from './tokenize';
 import prettyPrint from './prettyPrint';
 import { ECHO_INTERNALS, ECHO_SELF } from './symbols';
 
-const ignoreIdents: any[] = [
+const ignoreIdents: string[] = [
   // public interface
   'render', 'options', 'then', 'print', 'toString', '__registerPublicGetter',
 
   // avoid breaking the console, or JavaScript altogether
-  'valueOf', 'constructor', 'prototype', '__proto__',
+  'valueOf', 'constructor', 'prototype', '__proto__', 'name',
   // symbols
   'Symbol(nodejs.util.inspect.custom)', 'Symbol(Symbol.toPrimitive)'
 ];
@@ -43,22 +43,24 @@ const handler: ProxyHandler<Echo> = {
   },
   getOwnPropertyDescriptor(target, identifier) {
     if (ignoreIdents.includes(String(identifier))) {
-      return { value: target[identifier] };
+      return Object.getOwnPropertyDescriptor(target, identifier);
     } else if (customPublicGetters.has(identifier)) {
       return { value: customPublicGetters.get(identifier)(target), configurable: true };
     }
-    return null;
+    return { value: null, configurable: true };
   },
 };
 
 export default function generateEcho(autoLogDisabled: { value: boolean }, id: number): Echo {
   const Echo = function Echo() {} as Echo; // eslint-disable-line
+
   Echo[ECHO_INTERNALS] = {
     autoLogDisabled,
     stack: [{type: 'get', identifier: 'Echo'}],
     proxy: new Proxy(Echo, handler) as unknown as EchoProxy,
     id
   };
+
   Echo.render = (disableAutoLog = true): PrettyPrintOutput => {
     if (disableAutoLog) autoLogDisabled.value = true;
     const t = tokenizeEcho(Echo);
