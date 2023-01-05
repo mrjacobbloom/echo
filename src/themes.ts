@@ -1,4 +1,4 @@
-const ANSI = {
+export const ANSI = {
   reset: "\x1b[0m",
   red: "\x1b[31m",
   green: "\x1b[32m",
@@ -8,7 +8,7 @@ const ANSI = {
   cyan: "\x1b[36m",
 };
 
-export default {
+export const THEMES = {
   // https://github.com/ChromeDevTools/devtools-frontend/blob/master/front_end/ui/inspectorSyntaxHighlight.css
   chrome: {
     browser: {

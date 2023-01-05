@@ -537,7 +537,7 @@ describe('tokenize tests', () => {
     });
   });
 
-  describe('Parens ambiguities and nonambiguities tests', () => {
+  describe('Parens ambiguities and non-ambiguities tests', () => {
     it('new Echo', async () => expect((await new Echo).plaintext).to.equal('new Echo'));
     it('new Echo(1)', async () => expect((await new Echo(1)).plaintext).to.equal('new Echo(1)'));
     it('new (Echo())', async () => expect((await new (Echo())).plaintext).to.equal('new (Echo())'));
@@ -594,6 +594,12 @@ describe('prettyPrint tests', () => {
       expect(theme.keyword).to.be.a('string');
       expect(theme.keyword).to.include('\x1b');
     });
+  });
+  it('Custom themes work as expected, and use a reasonable default style for unspecified token types', async () => {
+    Echo.options.colorMode = 'browser';
+    Echo.options.theme = { variable: 'color: variable', operator: 'color: operator' };
+    const { formatted } = await Echo.foo;
+    expect(formatted).to.deep.equal(['%cEcho%c.%cfoo', 'color: variable', 'color: operator', 'color: black']);
   });
 });
 

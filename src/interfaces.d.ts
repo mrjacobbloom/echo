@@ -7,7 +7,7 @@ type Options = {
   parensOptional: boolean;
   colorMode: 'browser' | 'ansi' | 'off';
   stringDelimiter: '\'' | '"' | '`';
-  theme: 'firefox' | 'chrome';
+  theme: 'firefox' | 'chrome' | Theme;
   autoLog: boolean;
   autoLogMinLength: number;
 };
@@ -78,7 +78,7 @@ type Token = {
   type: TokenType;
 };
 
-type Theme = { [tokenType in TokenType]: string };
+type Theme = { [tokenType in TokenType]?: string };
 
 type PrettyPrintOutput = {
   tokens: Token[];

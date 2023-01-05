@@ -285,7 +285,7 @@
       magenta: "\x1b[35m",
       cyan: "\x1b[36m",
   };
-  var THEMES = {
+  const THEMES = {
       // https://github.com/ChromeDevTools/devtools-frontend/blob/master/front_end/ui/inspectorSyntaxHighlight.css
       chrome: {
           browser: {
@@ -365,12 +365,12 @@
           ret.formatted = [ret.plaintext];
       }
       else if (options.colorMode === 'browser') {
-          ret.theme = THEMES[options.theme].browser;
+          ret.theme = typeof options.theme === 'string' ? THEMES[options.theme].browser : options.theme;
           let formatString = '';
           const styles = [];
           let prevStyle;
           for (const token of tokens) {
-              const style = ret.theme[token.type] || ret.theme.default;
+              const style = ret.theme[token.type] || ret.theme.default || 'color: black';
               if (style !== prevStyle) {
                   formatString += '%c';
                   styles.push(style);
@@ -381,17 +381,17 @@
           ret.formatted = [formatString, ...styles];
       }
       else {
-          ret.theme = THEMES[options.theme].ansi;
+          ret.theme = typeof options.theme === 'string' ? THEMES[options.theme].ansi : options.theme;
           let out = '';
           let prevColorCode;
           for (const token of tokens) {
-              const colorCode = ret.theme[token.type] || ret.theme.default;
+              const colorCode = ret.theme[token.type] || ret.theme.default || ANSI.reset;
               if (colorCode !== prevColorCode)
                   out += colorCode;
               out += token.value;
               prevColorCode = colorCode;
           }
-          out += '\x1b[0m'; // force reset
+          out += ANSI.reset; // force reset
           ret.formatted = [out];
       }
       return ret;

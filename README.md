@@ -109,7 +109,7 @@ and options that affect its behavior in other ways.
 | `constructorParensOptional` | Boolean | `true` | When true, drop parentheses for constructors with no arguments. |
 | `stringDelimiter` | String | `"'"` | What character is used to delimit (bookend) strings, and is escaped from strings. If the string contains a newline, this is ignored and the string is rendered as a template string. |
 | `colorMode` | `"browser"`, `"ansi"`, `"off"` | [auto detected] | Enable or disable syntax highlighting and the mode used to set colors. |
-| `theme` | `"chrome"`, `"firefox"` | [auto detected] | Which DevTools' syntax highlighting theme to use. Defaults to Chrome unless you're using Firefox.
+| `theme` | `"chrome"`, `"firefox"`, Object | [auto detected] | Which DevTools' syntax highlighting theme to use. Defaults to Chrome unless you're using Firefox. Can also be a custom theme object whose keys are TokenTypes and whose values are ANSI color codes or CSS styles for the given token type (depending on colorMode). |
 | `autoLog` | Boolean | `true` | When true, automatically console.log the output. See below. |
 | `autoLogMinLength` | Number | `1` | The minimum number of tokens required to log to console. You can use this to avoid printing in some autocomplete situations. See below. |
 

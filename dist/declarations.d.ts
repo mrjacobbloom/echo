@@ -53,6 +53,8 @@ declare namespace EchoProxy {
     type: EchoProxy.TokenType;
   }
 
+  type Theme = { [tokenType in EchoProxy.TokenType]?: string };
+
   interface RenderResult {
     /**
      * The output broken up into typed "tokens," which is what Echo uses to do syntax highlighting.
@@ -72,7 +74,7 @@ declare namespace EchoProxy {
     /**
      * The "theme" object that maps "token types" to either ANSI colors or hsl colors (or null if options.colorMode='off').
      */
-    theme: null | { [tokenType in EchoProxy.TokenType]: string }
+    theme: null | EchoProxy.Theme;
   }
 
   interface Options {
@@ -107,10 +109,10 @@ declare namespace EchoProxy {
     stringDelimiter: '\'' | '"' | '`';
 
     /**
-     * Which DevTools' syntax highlighting theme to use.
+     * Which DevTools' syntax highlighting theme to use. Can also be a custom theme object whose keys are TokenTypes and whose values are ANSI color codes or CSS styles for the given token type.
      * @default "Chrome, unless you're using Firefox.""
      */
-    theme: 'firefox' | 'chrome';
+    theme: 'firefox' | 'chrome' | EchoProxy.Theme
 
     /**
      * When true, automatically console.log the output. See README.

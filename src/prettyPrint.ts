@@ -1,5 +1,5 @@
 import options from './options';
-import THEMES from './themes';
+import { THEMES, ANSI } from './themes';
 
 /**
  * Converts an array of Tokens to the format specified by options.colorMode and
@@ -17,12 +17,12 @@ export default function prettyPrint(tokens: Token[]): PrettyPrintOutput {
   if(options.colorMode === 'off') {
     ret.formatted = [ret.plaintext];
   } else if(options.colorMode === 'browser') {
-    ret.theme = THEMES[options.theme].browser;
+    ret.theme = typeof options.theme === 'string' ? THEMES[options.theme].browser : options.theme;
     let formatString = '';
     const styles = [];
     let prevStyle: string;
     for(const token of tokens) {
-      const style = ret.theme[token.type] || ret.theme.default;
+      const style = ret.theme[token.type] || ret.theme.default || 'color: black';
       if (style !== prevStyle) {
         formatString += '%c';
         styles.push(style);
@@ -32,16 +32,16 @@ export default function prettyPrint(tokens: Token[]): PrettyPrintOutput {
     }
     ret.formatted = [formatString, ...styles];
   } else {
-    ret.theme = THEMES[options.theme].ansi;
+    ret.theme = typeof options.theme === 'string' ? THEMES[options.theme].ansi : options.theme;
     let out = '';
     let prevColorCode: string;
     for(const token of tokens) {
-      const colorCode = ret.theme[token.type] || ret.theme.default
+      const colorCode = ret.theme[token.type] || ret.theme.default || ANSI.reset
       if (colorCode !== prevColorCode) out += colorCode;
       out += token.value;
       prevColorCode = colorCode;
     }
-    out += '\x1b[0m'; // force reset
+    out += ANSI.reset; // force reset
     ret.formatted = [out]
   }
   return ret;
