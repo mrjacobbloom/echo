@@ -1,6 +1,6 @@
 {
   "name": "echo-proxy",
-  "version": "1.8.0",
+  "version": "1.9.0",
   "description": "Fun with proxies. Repeats after you.",
   "main": "dist/echo.js",
   "types": "dist/declarations.d.ts",
@@ -34,6 +34,7 @@
     "typescript": "^3.5.3"
   },
   "engines": {
-    "node": ">=10.12.0"
-  }
+    "node": ">=11"
+  },
+  "runkitExample": "require('echo-proxy');\nrequire('@runkit/mrjacobbloom/echo-output-value-viewer/latest')();\n\n// Edit the following code and click Run.\n// If everything works correctly, it should print the code you entered!\n\nEcho[234].foo(null, new Echo, [true]).bar[''][Symbol('qux')]"
 }
