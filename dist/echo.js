@@ -254,7 +254,12 @@
               }
               case 'apply': {
                   if (calledAsTemplateTag(item.args)) {
-                      out = [...out, ...tokenizeTemplateLiteralFromTagArgs(item.args)];
+                      if (prevType === 'construct') {
+                          out = [T.operator `(`, ...out, T.operator `)`, ...tokenizeTemplateLiteralFromTagArgs(item.args)];
+                      }
+                      else {
+                          out = [...out, ...tokenizeTemplateLiteralFromTagArgs(item.args)];
+                      }
                   }
                   else {
                       if (!options.parensOptional || prevType === 'construct') {

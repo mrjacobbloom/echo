@@ -555,6 +555,8 @@ describe('tokenize tests', () => {
     it('new new Echo', async () => expect((await new new Echo).plaintext).to.equal('new new Echo'));
     it('new new Echo(1)', async () => expect((await new new Echo(1)).plaintext).to.equal('new new Echo(1)'));
     it('Echo()()()', async () => expect((await Echo()()()).plaintext).to.equal('Echo()()()'));
+    it('new (Echo`foo`)', async () => expect((await new (Echo`foo`)).plaintext).to.equal('new (Echo`foo`)'));
+    it('(new Echo)`foo`', async () => expect((await (new Echo)`foo`).plaintext).to.equal('(new Echo)`foo`'));
   });
 });
 

@@ -218,7 +218,11 @@ export function tokenizeEcho(Echo: Echo): Token[] {
       }
       case 'apply': {
         if (calledAsTemplateTag(item.args)) {
-          out = [...out, ...tokenizeTemplateLiteralFromTagArgs(item.args as any)]
+          if (prevType === 'construct') {
+            out = [T.operator`(`, ...out, T.operator`)`, ...tokenizeTemplateLiteralFromTagArgs(item.args as any)];
+          } else {
+            out = [...out, ...tokenizeTemplateLiteralFromTagArgs(item.args as any)];
+          }
         } else {
           if (!options.parensOptional || prevType === 'construct') {
             out = [T.operator`(`, ...out, T.operator`)`, T.operator`(`, ...tokenizeArgumentsList(item.args), T.operator`)`];
