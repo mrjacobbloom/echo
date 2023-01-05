@@ -1,4 +1,4 @@
-# Echo [![license](https://img.shields.io/npm/l/echo-proxy)](https://github.com/mrjacobbloom/echo/blob/master/LICENSE) [![Build Status](https://travis-ci.com/mrjacobbloom/echo.svg?branch=master)](https://travis-ci.com/mrjacobbloom/echo) [![npm](https://img.shields.io/npm/v/echo-proxy)](https://www.npmjs.com/package/echo-proxy) [![Try echo-proxy on RunKit](https://badge.runkitcdn.com/echo-proxy.svg)](https://npm.runkit.com/echo-proxy)
+# Echo [![license](https://img.shields.io/npm/l/echo-proxy)](https://github.com/mrjacobbloom/echo/blob/master/LICENSE) [![npm](https://img.shields.io/npm/v/echo-proxy)](https://www.npmjs.com/package/echo-proxy) [![Try echo-proxy on RunKit](https://badge.runkitcdn.com/echo-proxy.svg)](https://npm.runkit.com/echo-proxy)
 
 Fun with proxies. Do any combination of calls, constructs, and dot-walks
 starting with `Echo`, and an approximation of what you typed is logged to the

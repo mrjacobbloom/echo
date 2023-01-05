@@ -7,7 +7,7 @@
   "scripts": {
     "build": "npx eslint src/*.ts && npx rollup -c",
     "test": "npx mocha",
-    "travis": "npm run build && npm test"
+    "ci": "npm run build && npm test"
   },
   "repository": {
     "type": "git",
