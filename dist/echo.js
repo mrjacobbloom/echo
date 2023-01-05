@@ -434,7 +434,10 @@
           return ignoreIdents.includes(String(identifier)) || customPublicGetters.has(identifier);
       },
       getOwnPropertyDescriptor(target, identifier) {
-          if (ignoreIdents.includes(String(identifier))) {
+          if (identifier === 'name') {
+              return { value: 'Echo', configurable: true };
+          }
+          else if (ignoreIdents.includes(String(identifier))) {
               return Object.getOwnPropertyDescriptor(target, identifier);
           }
           else if (customPublicGetters.has(identifier)) {
@@ -442,6 +445,9 @@
           }
           return { value: null, configurable: true };
       },
+      ownKeys(target) {
+          return [...Reflect.ownKeys(target).filter((i) => i !== ECHO_INTERNALS), 'name'];
+      }
   };
   function generateEcho(autoLogDisabled, id) {
       const Echo = function Echo() { }; // eslint-disable-line

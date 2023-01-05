@@ -91,7 +91,50 @@ describe('Echo public interface tests', () => {
     console.log.restore();
     expect(getter.callCount).to.equal(1);
     expect(getter.args[0][0]).to.be.a('function');
-  })
+  });
+});
+
+describe('Proxy trap completeness tests', () => {
+  it('Reflect.ownKeys(Echo) works as expected, does NOT include ECHO_INTERNALS', () => {
+    const keys = Reflect.ownKeys(Echo);
+
+    // Builtin / overridden JS-y stuff
+    expect(keys).to.include('prototype');
+    expect(keys).to.include('name');
+    expect(keys).to.include('toString');
+    expect(keys).to.include(Symbol.toPrimitive);
+    expect(keys).to.include(Symbol.for('nodejs.util.inspect.custom'));
+
+    // Public API
+    expect(keys).to.include('render');
+    expect(keys).to.include('print');
+    expect(keys).to.include('then');
+    expect(keys).to.include('options');
+    expect(keys).to.include('__registerPublicGetter');
+
+    // Does NOT include ECHO_INTERNALS
+    expect(keys.find(k => typeof k === 'symbol' && k.description === 'ECHO_INTERNALS')).to.equal(undefined);
+  });
+
+  it('Object.getOwnPropertyDescriptors(Echo) completes without crashing', () => {
+    Object.getOwnPropertyDescriptors(Echo);
+  });
+
+  it('Object.getOwnPropertyDescriptor(Echo, \'name\') has a value of "Echo" (for RunKit pretty-print)', () => {
+    const descriptor = Object.getOwnPropertyDescriptor(Echo, 'name');
+    expect(descriptor.value).to.equal('Echo');
+    expect(descriptor.configurable).to.equal(true);
+  });
+
+  it('`\'key\' in Echo` returns true for ownKeys', () => {
+    for (const key of Reflect.ownKeys(Echo)) {
+      expect(key in Echo).to.equal(true);
+    }
+  });
+
+  it('`\'key\' in Echo` returns false for unknown key', () => {
+    expect('unknown' in Echo).to.equal(false);
+  });
 });
 
 describe('tokenize tests', () => {
